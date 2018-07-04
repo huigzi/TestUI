@@ -248,7 +248,7 @@ namespace TestUI
             }
         }
 
-        private void RemoveClient(int index)
+        private void RemoveClient()
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
             {
@@ -434,7 +434,7 @@ namespace TestUI
 
             var index = ClinetList.IndexOf(connId);
             ClinetList.RemoveAt(index);
-            RemoveClient(index);
+            RemoveClient();
 
             if (_server.RemoveExtra(connId) == false)
             {
