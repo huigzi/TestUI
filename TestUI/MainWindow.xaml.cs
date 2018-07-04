@@ -1,24 +1,17 @@
-﻿using System;
+﻿using HPSocketCS;
+using InteractiveDataDisplay.WPF;
+using MathNet.Numerics.Data.Matlab;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
+using System.Windows.Forms;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Threading;
-using InteractiveDataDisplay.WPF;
-using HPSocketCS;
 
 namespace TestUI
 {
@@ -56,6 +49,9 @@ namespace TestUI
         private BinaryWriter _sw;
         private FileStream _filestream;
         private int _samFreq;
+        private long _count;
+        private long _count2;
+        private string _filename;
 
         private readonly Algorithm _algorithm;
         private readonly List<LineGraph> _lineGraphs;
@@ -92,6 +88,7 @@ namespace TestUI
             };
 
             _channelInfo = new byte[16];
+            _dataState = DataState.Stoped;
 
             _algorithm = new Algorithm();
             _filePath = new FilePath();
@@ -162,14 +159,13 @@ namespace TestUI
                 IpAddress.Text = Properties.Settings.Default.address;
                 ProtNum.Text = Properties.Settings.Default.port;
                 Duration.Value = Properties.Settings.Default.duration;
-                //ChannelNum.Text = Properties.Settings.Default.channel;
-                //Slider.Value = Properties.Settings.Default.range;
-                //Min.Text = Properties.Settings.Default.minfreq;
-                //FreqText.Text = Properties.Settings.Default.freq;
-                //Cmbox.SelectedIndex = Properties.Settings.Default.sample;
-                //FreqCombox.SelectedIndex = Properties.Settings.Default.samplerate;
-                //PathContext.Text = Properties.Settings.Default.filepath;
-                //_filePath.Path = Properties.Settings.Default.filepath;
+                SinFreqNum.Value = Properties.Settings.Default.singfreq;
+                MinNum.Value = Properties.Settings.Default.minfreq;
+                MaxNum.Value = Properties.Settings.Default.maxfreq;
+                Amplitude.Value = Properties.Settings.Default.amplitude;
+                SampFreq.SelectedIndex = Properties.Settings.Default.sampfreq;
+                SingalType.SelectedIndex = Properties.Settings.Default.singaltype;
+                ChanNum.SelectedIndex = Properties.Settings.Default.channum;
 
                 _server.OnPrepareListen += OnPrepareListen;
                 _server.OnAccept += OnAccept;
@@ -242,7 +238,7 @@ namespace TestUI
             {
                 if (_channelInfo[i] == 1)
                 {
-                    _algorithm.CalculateGraph(xData, i, 512);
+                    _algorithm.CalculateGraph(xData, i, 512, _samFreq);
                     _lineGraphs[j * 2].Description = $"信号通道 {i + 1}";
                     _lineGraphs[j * 2 + 1].Description = $"信号通道 {i + 1}";
                     _lineGraphs[j * 2].PlotY(_algorithm.TimerGraph);
@@ -369,11 +365,8 @@ namespace TestUI
                         SetDataState(DataState.Stoped);
                         Dispatcher.Invoke(() =>
                         {
-                            //BtnSend2.IsEnabled = true;
-                            //BtnSend5.IsEnabled = true;
-                            //FreqChange.IsEnabled = true;
-                            //RuntimeButton.IsEnabled = true;
-
+                            SampChange.IsEnabled = true;
+                        
                         });
                     }
 
@@ -381,11 +374,7 @@ namespace TestUI
                     {
                         Dispatcher.Invoke(() =>
                         {
-                            //BtnSend2.IsEnabled = true;
-                            //BtnSend5.IsEnabled = true;
-                            //BtnSend6.IsEnabled = true;
-                            //RuntimeButton.IsEnabled = true;
-                            //FreqChange.IsEnabled = true;
+                            
 
                         });
                     }
@@ -486,6 +475,9 @@ namespace TestUI
                     AddMsg($"服务已经正常启动 ->({tmpIp}:{port})");
                     AddStatus("下位机未连接", Color.FromRgb(255, 0, 0));
                 }
+
+                Connect.IsEnabled = false;
+                UnCon.IsEnabled = true;
             }
             catch (Exception ex)
             {
@@ -498,6 +490,8 @@ namespace TestUI
         {
             if (_server.Stop())
             {
+                Connect.IsEnabled = true;
+                UnCon.IsEnabled = false;
             }
             else
             {
@@ -530,6 +524,251 @@ namespace TestUI
             _server.Send(_connectId, commandBuf, 4);
 
             AddStatus("工作模式", Color.FromRgb(0, 255, 0));
+        }
+
+        private void Identy_Click(object sender, RoutedEventArgs e)
+        {
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            if (Duration.Value == null || MaxNum.Value == null|| MinNum.Value == null ||SinFreqNum.Value == null)
+            {
+                return;
+            }
+
+            double duration = (double) Duration.Value;
+
+            if (duration > 120)
+                duration = 120;
+
+            double amplitude = Amplitude.Value;
+            double minnum = (double) MinNum.Value;
+            double maxnum = (double) MaxNum.Value;
+            double sinfreq = (double) SinFreqNum.Value;
+
+
+            if (string.IsNullOrEmpty(_filePath.Path))
+            {
+                var mDialog = new FolderBrowserDialog();
+                DialogResult result = mDialog.ShowDialog();
+
+                if (result == System.Windows.Forms.DialogResult.Cancel)
+                {
+                    return;
+                }
+
+                _filePath.Path = mDialog.SelectedPath.Trim();
+            }
+
+            SampChange.IsEnabled = false;
+
+            _count2++;
+
+            _filename = DateTime.Now.ToString("MM-dd") + "第" + Convert.ToString(_count2) + "次辨识数据（" +
+                        ChanNum.SelectedItem.ToString().Trim() +
+                        "）通道";
+            string path = _filePath.Path + "\\" + _filename;
+
+            _filestream = new FileStream(path: path, mode: FileMode.Create, access: FileAccess.Write);
+            _sw = new BinaryWriter(_filestream);
+
+            if (SingalType.SelectedIndex == 0)
+            {
+                var commandBuf = new byte[16];
+
+                commandBuf[0] = 0x01;
+                commandBuf[1] = 0x01;
+                commandBuf[2] = 0x02;
+                commandBuf[3] = 0x00;
+                commandBuf[4] = (byte) duration;
+                commandBuf[5] = (byte) ChanNum.SelectedItem;
+                commandBuf[5] -= 1;
+                commandBuf[6] = (byte) (amplitude * 10);
+
+                _server.Send(_connectId, commandBuf, 7);
+            }
+            else if (SingalType.SelectedIndex == 1)
+            {
+                var commandBuf = new byte[16];
+
+                commandBuf[0] = 0x01;
+                commandBuf[1] = 0x01;
+                commandBuf[2] = 0x02;
+                commandBuf[3] = 0x01;
+                commandBuf[4] = (byte) duration;
+                commandBuf[5] = (byte) ChanNum.SelectedItem;
+                commandBuf[5] -= 1;
+                commandBuf[6] = (byte) (amplitude * 10);
+                commandBuf[7] = (byte) (sinfreq / 100);
+
+                _server.Send(_connectId, commandBuf, 8);
+            }
+            else
+            {
+                var commandBuf = new byte[16];
+
+                commandBuf[0] = 0x01;
+                commandBuf[1] = 0x01;
+                commandBuf[2] = 0x02;
+                commandBuf[3] = 0x02;
+                commandBuf[4] = (byte) duration;
+                commandBuf[5] = (byte) ChanNum.SelectedItem;
+                commandBuf[5] -= 1;
+                commandBuf[6] = (byte) (amplitude * 10);
+                commandBuf[7] = (byte) (minnum * 10);
+                commandBuf[8] = (byte) (maxnum * 10);
+
+                _server.Send(_connectId, commandBuf, 9);
+            }
+
+        }
+
+        private void Tile_Click(object sender, RoutedEventArgs e)
+        {
+            var commandBuf = new byte[16];
+
+            commandBuf[0] = 0x01;
+            commandBuf[1] = 0x01;
+            commandBuf[2] = 0x03;
+            commandBuf[3] = (byte)SampFreq.SelectedIndex;
+
+            _server.Send(_connectId, commandBuf, 4);
+            _samFreq = int.Parse(SampFreq.SelectedItem.ToString().Trim());
+            SampleContent.Content = SampFreq.SelectedItem + "Hz";
+        }
+
+        private void Save1772Data_Click(object sender, RoutedEventArgs e)
+        {
+            var tile = (MahApps.Metro.Controls.Tile)sender;
+
+            if (string.IsNullOrEmpty(_filePath.Path))
+            {
+                var mDialog = new FolderBrowserDialog();
+                DialogResult result = mDialog.ShowDialog();
+
+                if (result == System.Windows.Forms.DialogResult.Cancel)
+                {
+                    return;
+                }
+                _filePath.Path = mDialog.SelectedPath.Trim();
+            }
+
+            if (_dataState == DataState.Started)
+            {
+                SetDataState(DataState.Stoped);
+                tile.Title = "开始保存";
+                _sw.Dispose();
+                _filestream.Dispose();
+
+            }
+            else
+            {
+                _count++;
+                _filename = DateTime.Now.ToString("MM-dd") + "第" + Convert.ToString(_count) + "次非辨识数据";
+                SetDataState(DataState.Started);
+                tile.Title = "停止保存";
+                string path = _filePath.Path + "\\" + _filename;
+                _filestream = new FileStream(path: path, mode: FileMode.Create, access: FileAccess.Write);
+                _sw = new BinaryWriter(_filestream);
+
+            }
+        }
+
+        private void ChangePath_Click(object sender, RoutedEventArgs e)
+        {
+            var mDialog = new FolderBrowserDialog();
+            DialogResult result = mDialog.ShowDialog();
+
+            if (result == System.Windows.Forms.DialogResult.Cancel)
+            {
+                return;
+            }
+            _filePath.Path = mDialog.SelectedPath.Trim();
+        }
+
+        private void SendParam_Click(object sender, RoutedEventArgs e)
+        {
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog()
+            {
+                Filter = ""
+            };
+
+            var result = openFileDialog.ShowDialog();
+
+            if (result == false)
+            {
+                return;
+            }
+
+            var commandBuf = new byte[16];
+
+            commandBuf[0] = 0x01;
+            commandBuf[1] = 0x01;
+            commandBuf[2] = 0x01;
+            commandBuf[3] = 0x00;
+
+            _server.Send(_connectId, commandBuf, 4);
+
+            try
+            {
+
+                var m1 = MatlabReader.ReadAll<float>(filePath: openFileDialog.FileName);
+
+                if (m1.ContainsKey("param"))
+                {
+                    if (m1["param"].ColumnCount > 16)
+                    {
+                        AddMsg($"读取错误 -> 参数个数错误，请检查文件");
+                        return;
+                    }
+
+                    var paramBuf = new byte[2048];
+
+                    for (int i = 0; i < m1["param"].ColumnCount; i++)
+                    {
+                        var temp = BitConverter.GetBytes(m1["param"][0, i]);
+                        paramBuf[4 * i] = temp[0];
+                        paramBuf[4 * i + 1] = temp[1];
+                        paramBuf[4 * i + 2] = temp[2];
+                        paramBuf[4 * i + 3] = temp[3];
+                    }
+
+                    _server.Send(_connectId, paramBuf, 64);
+                }
+
+                if (m1.ContainsKey("filterCoeff"))
+                {
+                    if (m1["filterCoeff"].ColumnCount > 512 || m1["filterCoeff"].RowCount > 16)
+                    {
+                        AddMsg($"读取错误 -> 滤波器系数错误，请检查文件");
+                        return;
+                    }
+
+                    for (int i = 0; i < m1["filterCoeff"].RowCount; i++)
+                    {
+
+                        var paramBuf = new byte[2048];
+
+                        for (int j = 0; j < m1["filterCoeff"].ColumnCount; j++)
+                        {
+                            var temp = BitConverter.GetBytes(m1["filterCoeff"][i, j]);
+                            paramBuf[4 * j] = temp[0];
+                            paramBuf[4 * j + 1] = temp[1];
+                            paramBuf[4 * j + 2] = temp[2];
+                            paramBuf[4 * j + 3] = temp[3];
+                        }
+
+                        _server.Send(_connectId, paramBuf, 2048);
+                    }
+                }
+            }
+            catch
+            {
+                AddMsg($"读取错误 -> 更改参数错误，请联系开发商");
+            }
+        }
+
+        private void ViewChange_Click(object sender, RoutedEventArgs e)
+        {
+            Flyout.IsOpen = true;
         }
 
         private void CheckBox1_Click(object sender, RoutedEventArgs e)
@@ -1282,7 +1521,5 @@ namespace TestUI
             public string IpAddress { get; set; }
             public ushort Port { get; set; }
         }
-
-       
     }
 }

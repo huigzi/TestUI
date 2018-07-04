@@ -58,5 +58,89 @@ namespace TestUI.Properties {
                 this["duration"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1000")]
+        public double singfreq {
+            get {
+                return ((double)(this["singfreq"]));
+            }
+            set {
+                this["singfreq"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("100")]
+        public double minfreq {
+            get {
+                return ((double)(this["minfreq"]));
+            }
+            set {
+                this["minfreq"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2000")]
+        public double maxfreq {
+            get {
+                return ((double)(this["maxfreq"]));
+            }
+            set {
+                this["maxfreq"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.1")]
+        public double amplitude {
+            get {
+                return ((double)(this["amplitude"]));
+            }
+            set {
+                this["amplitude"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int sampfreq {
+            get {
+                return ((int)(this["sampfreq"]));
+            }
+            set {
+                this["sampfreq"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int singaltype {
+            get {
+                return ((int)(this["singaltype"]));
+            }
+            set {
+                this["singaltype"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int channum {
+            get {
+                return ((int)(this["channum"]));
+            }
+            set {
+                this["channum"] = value;
+            }
+        }
     }
 }

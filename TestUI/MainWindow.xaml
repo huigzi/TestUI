@@ -5,6 +5,7 @@
         xmlns:d3 ="clr-namespace:InteractiveDataDisplay.WPF;assembly=InteractiveDataDisplay.WPF"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+        xmlns:input="clr-namespace:System.Windows.Input;assembly=PresentationCore"
         xmlns:controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:TestUI"
@@ -45,39 +46,36 @@
                 <sys:String>8000</sys:String>
             </x:Array>
 
-            <x:Array x:Key="Channel" Type="{x:Type sys:String}">
-                <sys:String>1</sys:String>
-                <sys:String>2</sys:String>
-                <sys:String>3</sys:String>
-                <sys:String>4</sys:String>
-                <sys:String>5</sys:String>
-                <sys:String>6</sys:String>
-                <sys:String>7</sys:String>
-                <sys:String>8</sys:String>
-                <sys:String>9</sys:String>
-                <sys:String>10</sys:String>
-                <sys:String>11</sys:String>
-                <sys:String>12</sys:String>
-                <sys:String>13</sys:String>
-                <sys:String>14</sys:String>
-                <sys:String>15</sys:String>
-                <sys:String>16</sys:String>
+            <x:Array x:Key="Channel" Type="{x:Type sys:Byte}">
+                <sys:Byte>1</sys:Byte>
+                <sys:Byte>2</sys:Byte>
+                <sys:Byte>3</sys:Byte>
+                <sys:Byte>4</sys:Byte>
+                <sys:Byte>5</sys:Byte>
+                <sys:Byte>6</sys:Byte>
+                <sys:Byte>7</sys:Byte>
+                <sys:Byte>8</sys:Byte>
+                <sys:Byte>9</sys:Byte>
+                <sys:Byte>10</sys:Byte>
+                <sys:Byte>11</sys:Byte>
+                <sys:Byte>12</sys:Byte>
+                <sys:Byte>13</sys:Byte>
+                <sys:Byte>14</sys:Byte>
+                <sys:Byte>15</sys:Byte>
+                <sys:Byte>16</sys:Byte>
             </x:Array>
         </ResourceDictionary>
     </controls:MetroWindow.Resources>
 
     <controls:MetroWindow.RightWindowCommands>
         <controls:WindowCommands>
-            <Button Content="显示通道更改">
-
-            </Button>
+            <Button x:Name="ViewChange" Content="显示通道更改" Click="ViewChange_Click"/>
         </controls:WindowCommands>
     </controls:MetroWindow.RightWindowCommands>
 
-
     <controls:MetroWindow.Flyouts>
         <controls:FlyoutsControl>
-            <controls:Flyout Header="显示通道" Position="Right" Width="200" Theme="Adapt">
+            <controls:Flyout x:Name="Flyout" Header="显示通道" Position="Right" Width="200" Theme="Adapt">
                 <Grid x:Name="ChannelList" Margin="20, 0, 20, 0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="1*" />
@@ -140,47 +138,101 @@
         <controls:MetroAnimatedTabControl Grid.RowSpan="2">
             <TabItem Header="功能">
                 <WrapPanel HorizontalAlignment="Left" VerticalAlignment="Top">
-                    <controls:Tile x:Name="Connect" Title="启动服务" Margin="3" controls:ControlsHelper.MouseOverBorderBrush="White"  Style="{StaticResource LargeTileStyle}" Click="Connect_Click">
+                    <controls:Tile x:Name="Connect" 
+                                   Title="启动服务" 
+                                   Margin="3" 
+                                   controls:ControlsHelper.MouseOverBorderBrush="White"  
+                                   Style="{StaticResource LargeTileStyle}" 
+                                   Click="Connect_Click">
                         <iconPacks:PackIconMaterial Width="40"
                                                     Height="40"
                                                     Kind="Server" />
                     </controls:Tile>
-                    <controls:Tile x:Name="UnCon" Title="停止服务" Margin="3" controls:ControlsHelper.MouseOverBorderBrush="White"  Style="{StaticResource LargeTileStyle}" Click="UnCon_Click">
+                    <controls:Tile x:Name="UnCon" 
+                                   Title="停止服务" 
+                                   Margin="3" 
+                                   controls:ControlsHelper.MouseOverBorderBrush="White"  
+                                   Style="{StaticResource LargeTileStyle}" 
+                                   Click="UnCon_Click"
+                                   IsEnabled="False">
                         <iconPacks:PackIconMaterial Width="40"
                                                     Height="40"
                                                     Kind="ServerOff" />
                     </controls:Tile>
-                    <controls:Tile Title="测量数据保存" Margin="3" controls:ControlsHelper.MouseOverBorderBrush="White"  Style="{StaticResource SmallTileStyle}" TitleFontSize="14">
+                    <controls:Tile x:Name="Save1772Data" Title="测量数据保存" 
+                                   Margin="3" 
+                                   controls:ControlsHelper.MouseOverBorderBrush="White"  
+                                   Style="{StaticResource SmallTileStyle}" 
+                                   TitleFontSize="14"
+                                   IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}"
+                                   Click="Save1772Data_Click">
                         <iconPacks:PackIconMaterial Width="30"
                                                     Height="30"
                                                     Kind="ContentSave" />
                     </controls:Tile>
-                    <controls:Tile Title="更改数据保存路径" Margin="3" controls:ControlsHelper.MouseOverBorderBrush="White" Style="{StaticResource SmallTileStyle}" TitleFontSize="14">
+                    <controls:Tile x:Name="ChangePath" 
+                                   Title="更改数据保存路径" 
+                                   Margin="3" 
+                                   controls:ControlsHelper.MouseOverBorderBrush="White" 
+                                   Style="{StaticResource SmallTileStyle}" 
+                                   TitleFontSize="14"
+                                   Click="ChangePath_Click">
                         <iconPacks:PackIconMaterial Width="30"
                                                     Height="30"
                                                     Kind="ContentSaveSettings" />
                     </controls:Tile>
-                    <controls:Tile Title="加载并发送辨识参数" Margin="3" controls:ControlsHelper.MouseOverBorderBrush="White" Style="{StaticResource SmallTileStyle}" TitleFontSize="14">
+                    <controls:Tile x:Name="SendParam" 
+                                   Title="加载并发送辨识参数" 
+                                   Margin="3" 
+                                   controls:ControlsHelper.MouseOverBorderBrush="White" 
+                                   Style="{StaticResource SmallTileStyle}" 
+                                   TitleFontSize="14"
+                                   IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}"
+                                   Click="SendParam_Click">
                         <iconPacks:PackIconMaterial Width="30"
                                                     Height="30"
                                                     Kind="FileSend" />
                     </controls:Tile>
-                    <controls:Tile Title="解除报警" Margin="3" controls:ControlsHelper.MouseOverBorderBrush="White" Style="{StaticResource SmallTileStyle}" TitleFontSize="14">
+                    <controls:Tile x:Name="DisAlarm" 
+                                   Title="解除报警" 
+                                   Margin="3" 
+                                   controls:ControlsHelper.MouseOverBorderBrush="White" 
+                                   Style="{StaticResource SmallTileStyle}" 
+                                   TitleFontSize="14"
+                                   IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
                         <iconPacks:PackIconMaterial Width="30"
                                                     Height="30"
                                                     Kind="AlarmOff" />
                     </controls:Tile>
-                    <controls:Tile x:Name="DebugState" Title="变为调试状态" Margin="3" controls:ControlsHelper.MouseOverBorderBrush="White" Style="{StaticResource LargeTileStyle}" Click="DebugState_Click">
+                    <controls:Tile x:Name="DebugState" 
+                                   Title="变为调试状态" 
+                                   Margin="3" 
+                                   controls:ControlsHelper.MouseOverBorderBrush="White" 
+                                   Style="{StaticResource LargeTileStyle}" 
+                                   Click="DebugState_Click"
+                                   IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
                         <iconPacks:PackIconMaterial Width="40"
                                                     Height="40"
                                                     Kind="AndroidDebugBridge" />
                     </controls:Tile>
-                    <controls:Tile x:Name="WorkState" Title="变为工作状态" Margin="3" controls:ControlsHelper.MouseOverBorderBrush="White" Style="{StaticResource LargeTileStyle}" Click="WorkState_Click">
+                    <controls:Tile x:Name="WorkState" 
+                                   Title="变为工作状态" 
+                                   Margin="3" 
+                                   controls:ControlsHelper.MouseOverBorderBrush="White" 
+                                   Style="{StaticResource LargeTileStyle}" 
+                                   Click="WorkState_Click"
+                                   IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
                         <iconPacks:PackIconMaterial Width="40"
                                                     Height="40"
                                                     Kind="Worker" />
                     </controls:Tile>
-                    <controls:Tile  Title="加载配置参数" Margin="3" controls:ControlsHelper.MouseOverBorderBrush="White" Style="{StaticResource SmallTileStyle}" TitleFontSize="14">
+                    <controls:Tile x:Name="Upload"
+                                   Title="加载配置参数" 
+                                   Margin="3" 
+                                   controls:ControlsHelper.MouseOverBorderBrush="White" 
+                                   Style="{StaticResource SmallTileStyle}" 
+                                   TitleFontSize="14"
+                                   IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
                         <iconPacks:PackIconMaterial Width="30"
                                                     Height="30"
                                                     Kind="FolderUpload" />
@@ -189,7 +241,7 @@
 
             </TabItem>
 
-            <TabItem Header="控制" Margin="50,0,-50,0">
+            <TabItem Header="控制" Margin="50,0,-50,0" IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*"/>
@@ -204,7 +256,14 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Label Content="信号持续时间（秒）" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-                            <controls:NumericUpDown x:Name="Duration" Maximum="120" Minimum="0" Value="1" Margin="0,5,0,5" TextAlignment="Left"  Grid.Column="1"/>
+                            <controls:NumericUpDown x:Name="Duration" 
+                                                    Maximum="120" 
+                                                    Minimum="1" 
+                                                    Margin="0,5,0,5" 
+                                                    TextAlignment="Left"  
+                                                    Grid.Column="1"
+                                                    input:InputMethod.IsInputMethodEnabled="False"
+                                                    FontWeight="Bold"/>
                         </Grid>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -212,16 +271,17 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Label Content="信号幅度（归一化）" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-                            <Slider               Margin="1" 
-                                                  Grid.Column="1"
-                                                  controls:SliderHelper.EnableMouseWheel="MouseHover"
-                                                  AutoToolTipPlacement="BottomRight"
-                                                  Maximum="1"
-                                                  Minimum="0"
-                                                  Orientation="Horizontal"
-                                                  IsSnapToTickEnabled="True"
-                                                  TickPlacement="TopLeft"
-                                                  Ticks="0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1"/>
+                            <Slider x:Name="Amplitude"               
+                                    Margin="1" 
+                                    Grid.Column="1"
+                                    controls:SliderHelper.EnableMouseWheel="MouseHover"
+                                    AutoToolTipPlacement="BottomRight"
+                                    Maximum="1"
+                                    Minimum="0"
+                                    Orientation="Horizontal"
+                                    IsSnapToTickEnabled="True"
+                                    TickPlacement="TopLeft"
+                                    Ticks="0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1"/>
                         </Grid>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -229,7 +289,14 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Label Content="单频信号频率（Hz）" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-                            <controls:NumericUpDown x:Name="SinFreqNum" Maximum="100" Minimum="0" Value="1" TextAlignment="Left"  Margin="0,5,0,5" Grid.Column="1"/>
+                            <controls:NumericUpDown x:Name="SinFreqNum" 
+                                                    Maximum="4000" 
+                                                    Minimum="1" 
+                                                    TextAlignment="Left"  
+                                                    Margin="0,5,0,5" 
+                                                    Grid.Column="1"
+                                                    input:InputMethod.IsInputMethodEnabled="False"
+                                                    FontWeight="Bold"/>
                         </Grid>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -237,7 +304,14 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Label Content="扫频起始频率（Hz）" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-                            <controls:NumericUpDown x:Name="MinNum" Maximum="4000" Minimum="0" Value="1" TextAlignment="Left"  Margin="0,5,0,5" Grid.Column="1"/>
+                            <controls:NumericUpDown x:Name="MinNum" 
+                                                    Maximum="4000" 
+                                                    Minimum="1" 
+                                                    TextAlignment="Left"  
+                                                    Margin="0,5,0,5" 
+                                                    Grid.Column="1"
+                                                    input:InputMethod.IsInputMethodEnabled="False"
+                                                    FontWeight="Bold"/>
                         </Grid>
 
                         <Grid>
@@ -246,7 +320,14 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Label Content="扫频截至频率（Hz）" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-                            <controls:NumericUpDown x:Name="MaxNum" Maximum="4000" Minimum="0" Value="1" TextAlignment="Left"  Margin="0,5,0,5" Grid.Column="1"/>
+                            <controls:NumericUpDown x:Name="MaxNum" 
+                                                    Maximum="4000" 
+                                                    Minimum="1" 
+                                                    TextAlignment="Left"  
+                                                    Margin="0,5,0,5" 
+                                                    Grid.Column="1"
+                                                    input:InputMethod.IsInputMethodEnabled="False"
+                                                    FontWeight="Bold"/>
                         </Grid>
 
                         <Grid>
@@ -255,7 +336,15 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Label Content="失控阈值（%）" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-                            <controls:NumericUpDown x:Name="ThresHold" Maximum="100" Minimum="0" Value="1" TextAlignment="Left"  Margin="0,5,0,5" Grid.Column="1"/>
+                            <controls:NumericUpDown x:Name="ThresHold" 
+                                                    Maximum="1000" 
+                                                    Minimum="100" 
+                                                    Value="500" 
+                                                    TextAlignment="Left"  
+                                                    Margin="0,5,0,5" 
+                                                    Grid.Column="1"
+                                                    input:InputMethod.IsInputMethodEnabled="False"
+                                                    FontWeight="Bold"/>
                         </Grid>
 
                         <Grid>
@@ -264,10 +353,12 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Label Content="系统采样率（Hz）" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-                            <ComboBox Grid.Column="1"
+                            <ComboBox x:Name="SampFreq" 
+                                      Grid.Column="1"
                                       Margin="0,5,0,5"
                                       controls:TextBoxHelper.ClearTextButton="True"
-                                      ItemsSource="{Binding Source={StaticResource Freq}}"></ComboBox>
+                                      ItemsSource="{Binding Source={StaticResource Freq}}"
+                                      FontWeight="Bold"></ComboBox>
                         </Grid>
 
                         <Grid>
@@ -276,10 +367,12 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Label Content="辨识信号类型" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-                            <ComboBox Grid.Column="1"
+                            <ComboBox x:Name="SingalType" 
+                                      Grid.Column="1"
                                       Margin="0,5,0,5"
                                       controls:TextBoxHelper.ClearTextButton="True"
-                                      ItemsSource="{Binding Source={StaticResource Item}}"></ComboBox>
+                                      ItemsSource="{Binding Source={StaticResource Item}}"
+                                      FontWeight="Bold"></ComboBox>
                         </Grid>
 
                         <Grid>
@@ -288,19 +381,29 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Label Content="信号发声通道" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-                            <ComboBox Grid.Column="1"
+                            <ComboBox x:Name="ChanNum" 
+                                      Grid.Column="1"
                                       Margin="0,5,0,5"
                                       controls:TextBoxHelper.ClearTextButton="True"
-                                      ItemsSource="{Binding Source={StaticResource Channel}}"></ComboBox>
+                                      ItemsSource="{Binding Source={StaticResource Channel}}"
+                                      FontWeight="Bold"></ComboBox>
                         </Grid>
                     </StackPanel>
                     <StackPanel Grid.Column="1">
-                        <controls:Tile  Title="采样率变更" Margin="3" controls:ControlsHelper.MouseOverBorderBrush="White">
+                        <controls:Tile x:Name="SampChange"  
+                                       Title="采样率变更" 
+                                       Margin="3" 
+                                       controls:ControlsHelper.MouseOverBorderBrush="White"
+                                       Click="Tile_Click">
                             <iconPacks:PackIconMaterial Width="40"
                                                         Height="40"
                                                         Kind="Cached" />
                         </controls:Tile>
-                        <controls:Tile x:Name="Identy"  Title="开始辨识" Margin="3" controls:ControlsHelper.MouseOverBorderBrush="White" >
+                        <controls:Tile x:Name="Identy"  
+                                       Title="开始辨识" 
+                                       Margin="3" 
+                                       controls:ControlsHelper.MouseOverBorderBrush="White" 
+                                       Click="Identy_Click">
                             <iconPacks:PackIconMaterial Width="30"
                                                         Height="30"
                                                         Kind="Play" />
@@ -309,7 +412,7 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="图像" Margin="100,0,-100,0">
+            <TabItem Header="图像" Margin="100,0,-100,0" IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
@@ -378,7 +481,7 @@
             <Label x:Name="SampleContent"  Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
             <Label Content="下位机工作状态" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5" />
             <Label x:Name="WorkStateContext" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-            <ListBox x:Name="MsgBox" />
+            <ListBox x:Name="MsgBox" Height="150"/>
         </StackPanel>
     </Grid>
 </controls:MetroWindow>

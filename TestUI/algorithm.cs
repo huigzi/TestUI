@@ -11,7 +11,7 @@ namespace TestUI
     {
         private readonly FourierOptions _fourierOptions = 0;
         private float[] _xTemp2 = new float[514];
-        private float fs = 8000F;
+        private float _fs;
         private byte[] _temp = new byte[2];
 
         public float[] Xaxis { get; } = new float[256];
@@ -37,7 +37,7 @@ namespace TestUI
         {
             int k = 0;
             float average = xTemp.Average();
-            double temp = 0;
+            //double temp = 0;
 
             for (int i = 0; i < dotsNum; i++)
             {
@@ -49,15 +49,16 @@ namespace TestUI
             for (int j = 0; j < dotsNum; j = j + 2)
             {
                 Finresult[k] = Math.Sqrt(_xTemp2[j] * _xTemp2[j] + _xTemp2[j + 1] * _xTemp2[j + 1]);
-                //temp = Math.Sqrt(xTemp2[j] * xTemp2[j] + xTemp2[j + 1] * xTemp2[j + 1]);
+                //var temp = Math.Sqrt(_xTemp2[j] * _xTemp2[j] + _xTemp2[j + 1] * _xTemp2[j + 1]);
                 //Finresult[k] = Math.Log10(temp);
-                Xaxis[k] = fs / dotsNum * k;
+                Xaxis[k] = _fs / dotsNum * k;
                 k++;
             }
         }
 
-        public void CalculateGraph(byte[] xData, int channel, int dotsNum)
+        public void CalculateGraph(byte[] xData, int channel, int dotsNum, int sampFreq)
         {
+            _fs = sampFreq;
             TimerDomain(xData, channel);
             FreqDomain(TimerGraph, dotsNum);
         }
