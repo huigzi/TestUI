@@ -182,7 +182,7 @@
                                                     Kind="ContentSaveSettings" />
                     </controls:Tile>
                     <controls:Tile x:Name="SendParam" 
-                                   Title="加载并发送辨识参数" 
+                                   Title="发送辨识参数" 
                                    Margin="3" 
                                    controls:ControlsHelper.MouseOverBorderBrush="White" 
                                    Style="{StaticResource SmallTileStyle}" 
@@ -226,12 +226,13 @@
                                                     Height="40"
                                                     Kind="Worker" />
                     </controls:Tile>
-                    <controls:Tile x:Name="Upload"
-                                   Title="加载配置参数" 
+                    <controls:Tile x:Name="Programing"
+                                   Title="固化当前辨识参数" 
                                    Margin="3" 
                                    controls:ControlsHelper.MouseOverBorderBrush="White" 
                                    Style="{StaticResource SmallTileStyle}" 
                                    TitleFontSize="14"
+                                   Click="Programing_Click"
                                    IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
                         <iconPacks:PackIconMaterial Width="30"
                                                     Height="30"
@@ -387,6 +388,20 @@
                                       controls:TextBoxHelper.ClearTextButton="True"
                                       ItemsSource="{Binding Source={StaticResource Channel}}"
                                       FontWeight="Bold"></ComboBox>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="隔振控制" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
+                            <controls:ToggleSwitch x:Name="ChannelControl" 
+                                                   Margin="0,5,0,0"
+                                                   Grid.Column="1"
+                                                   IsChecked="False" 
+                                                   Click="ChannelControl_Click"
+                                                   />
                         </Grid>
                     </StackPanel>
                     <StackPanel Grid.Column="1">

@@ -39,10 +39,17 @@ namespace TestUI
         Started, Stoped
     }
 
+    public enum DeviceState
+    {
+        Connected, DisConnected
+    }
+
+
     public partial class MainWindow
     {
         private FilePath _filePath;
         private DataState _dataState;
+        private DeviceState _deviceState;
         private byte[] _channelInfo;
         private IntPtr _connectId;
         private int _itemcount = 1;
@@ -89,6 +96,7 @@ namespace TestUI
 
             _channelInfo = new byte[16];
             _dataState = DataState.Stoped;
+            _deviceState = DeviceState.DisConnected;
 
             _algorithm = new Algorithm();
             _filePath = new FilePath();
@@ -197,7 +205,16 @@ namespace TestUI
 
         private void MetroWindow_Closed(object sender, EventArgs e)
         {
+            
+            Properties.Settings.Default.address = IpAddress.Text;
+            Properties.Settings.Default.port = ProtNum.Text;
+            Properties.Settings.Default.amplitude = Amplitude.Value;
+            Properties.Settings.Default.sampfreq = SampFreq.SelectedIndex;
+            Properties.Settings.Default.singaltype = SingalType.SelectedIndex;
+            Properties.Settings.Default.channum = ChanNum.SelectedIndex;
+
             _server.Destroy();
+
         }
 
         private void AddMsg(string msg)
@@ -613,8 +630,8 @@ namespace TestUI
                 commandBuf[5] = (byte) ChanNum.SelectedItem;
                 commandBuf[5] -= 1;
                 commandBuf[6] = (byte) (amplitude * 10);
-                commandBuf[7] = (byte) (minnum * 10);
-                commandBuf[8] = (byte) (maxnum * 10);
+                commandBuf[7] = (byte) (minnum / 100);
+                commandBuf[8] = (byte) (maxnum / 100);
 
                 _server.Send(_connectId, commandBuf, 9);
             }
@@ -633,6 +650,37 @@ namespace TestUI
             _server.Send(_connectId, commandBuf, 4);
             _samFreq = int.Parse(SampFreq.SelectedItem.ToString().Trim());
             SampleContent.Content = SampFreq.SelectedItem + "Hz";
+        }
+
+        private void Programing_Click(object sender, RoutedEventArgs e)
+        {
+            var commandBuf = new byte[16];
+            commandBuf[0] = 0x01;
+            commandBuf[1] = 0x01;
+            commandBuf[2] = 0x05;
+            _server.Send(_connectId, commandBuf, 3);
+
+        }
+
+        private void ChannelControl_Click(object sender, RoutedEventArgs e)
+        {
+            var commandBuf = new byte[16];
+            if (ChannelControl.IsChecked == true)
+            {
+                commandBuf[0] = 0x01;
+                commandBuf[1] = 0x01;
+                commandBuf[2] = 0x06;
+                commandBuf[3] = 0x01;
+                _server.Send(_connectId, commandBuf, 4);
+            }
+            else
+            {
+                commandBuf[0] = 0x01;
+                commandBuf[1] = 0x01;
+                commandBuf[2] = 0x06;
+                commandBuf[3] = 0x00;
+                _server.Send(_connectId, commandBuf, 4);
+            }
         }
 
         private void Save1772Data_Click(object sender, RoutedEventArgs e)
@@ -709,7 +757,7 @@ namespace TestUI
 
             try
             {
-
+                //save 语句功能 version -v7以下
                 var m1 = MatlabReader.ReadAll<float>(filePath: openFileDialog.FileName);
 
                 if (m1.ContainsKey("param"))
@@ -720,7 +768,7 @@ namespace TestUI
                         return;
                     }
 
-                    var paramBuf = new byte[2048];
+                    var paramBuf = new byte[512 * 4];
 
                     for (int i = 0; i < m1["param"].ColumnCount; i++)
                     {
@@ -745,7 +793,7 @@ namespace TestUI
                     for (int i = 0; i < m1["filterCoeff"].RowCount; i++)
                     {
 
-                        var paramBuf = new byte[2048];
+                        var paramBuf = new byte[512 * 4];
 
                         for (int j = 0; j < m1["filterCoeff"].ColumnCount; j++)
                         {
@@ -756,7 +804,7 @@ namespace TestUI
                             paramBuf[4 * j + 3] = temp[3];
                         }
 
-                        _server.Send(_connectId, paramBuf, 2048);
+                        _server.Send(_connectId, paramBuf, 512 * 4);
                     }
                 }
             }

@@ -18,10 +18,10 @@
       <Value Profile="(Default)">100</Value>
     </Setting>
     <Setting Name="maxfreq" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">2000</Value>
+      <Value Profile="(Default)">1000</Value>
     </Setting>
     <Setting Name="amplitude" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0.1</Value>
+      <Value Profile="(Default)">1</Value>
     </Setting>
     <Setting Name="sampfreq" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">0</Value>

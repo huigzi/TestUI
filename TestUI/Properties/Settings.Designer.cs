@@ -85,7 +85,7 @@ namespace TestUI.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("2000")]
+        [global::System.Configuration.DefaultSettingValueAttribute("1000")]
         public double maxfreq {
             get {
                 return ((double)(this["maxfreq"]));
@@ -97,7 +97,7 @@ namespace TestUI.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0.1")]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
         public double amplitude {
             get {
                 return ((double)(this["amplitude"]));
