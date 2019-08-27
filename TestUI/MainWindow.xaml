@@ -10,7 +10,7 @@
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:TestUI"
         mc:Ignorable="d"
-        Title="主动隔振Demo" Height="600" Width="950"
+        Title="主动隔振Demo" Height="700" Width="950"
         Loaded="MetroWindow_Loaded"
         Closed="MetroWindow_Closed">
 
@@ -164,7 +164,7 @@
                                    controls:ControlsHelper.MouseOverBorderBrush="White"  
                                    Style="{StaticResource SmallTileStyle}" 
                                    TitleFontSize="14"
-                                   IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}"
+                                   IsEnabled="False"
                                    Click="Save1772Data_Click">
                         <iconPacks:PackIconMaterial Width="30"
                                                     Height="30"
@@ -187,7 +187,7 @@
                                    controls:ControlsHelper.MouseOverBorderBrush="White" 
                                    Style="{StaticResource SmallTileStyle}" 
                                    TitleFontSize="14"
-                                   IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}"
+                                   IsEnabled="False"
                                    Click="SendParam_Click">
                         <iconPacks:PackIconMaterial Width="30"
                                                     Height="30"
@@ -199,7 +199,8 @@
                                    controls:ControlsHelper.MouseOverBorderBrush="White" 
                                    Style="{StaticResource SmallTileStyle}" 
                                    TitleFontSize="14"
-                                   IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
+                                   IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}"
+                                   Click="DisAlarm_Click">
                         <iconPacks:PackIconMaterial Width="30"
                                                     Height="30"
                                                     Kind="AlarmOff" />
@@ -210,7 +211,7 @@
                                    controls:ControlsHelper.MouseOverBorderBrush="White" 
                                    Style="{StaticResource LargeTileStyle}" 
                                    Click="DebugState_Click"
-                                   IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
+                                   IsEnabled="False">
                         <iconPacks:PackIconMaterial Width="40"
                                                     Height="40"
                                                     Kind="AndroidDebugBridge" />
@@ -221,7 +222,7 @@
                                    controls:ControlsHelper.MouseOverBorderBrush="White" 
                                    Style="{StaticResource LargeTileStyle}" 
                                    Click="WorkState_Click"
-                                   IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
+                                   IsEnabled="False">
                         <iconPacks:PackIconMaterial Width="40"
                                                     Height="40"
                                                     Kind="Worker" />
@@ -233,7 +234,7 @@
                                    Style="{StaticResource SmallTileStyle}" 
                                    TitleFontSize="14"
                                    Click="Programing_Click"
-                                   IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
+                                   IsEnabled="False">
                         <iconPacks:PackIconMaterial Width="30"
                                                     Height="30"
                                                     Kind="FolderUpload" />
@@ -336,16 +337,6 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <Label Content="失控阈值（%）" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-                            <controls:NumericUpDown x:Name="ThresHold" 
-                                                    Maximum="1000" 
-                                                    Minimum="100" 
-                                                    Value="500" 
-                                                    TextAlignment="Left"  
-                                                    Margin="0,5,0,5" 
-                                                    Grid.Column="1"
-                                                    input:InputMethod.IsInputMethodEnabled="False"
-                                                    FontWeight="Bold"/>
                         </Grid>
 
                         <Grid>
@@ -395,13 +386,13 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <Label Content="隔振控制" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-                            <controls:ToggleSwitch x:Name="ChannelControl" 
+                            <!--<Label Content="隔振控制" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>-->
+                            <!--<controls:ToggleSwitch x:Name="ChannelControl" 
                                                    Margin="0,5,0,0"
                                                    Grid.Column="1"
                                                    IsChecked="False" 
                                                    Click="ChannelControl_Click"
-                                                   />
+                                                   />-->
                         </Grid>
                     </StackPanel>
                     <StackPanel Grid.Column="1">
@@ -409,6 +400,7 @@
                                        Title="采样率变更" 
                                        Margin="3" 
                                        controls:ControlsHelper.MouseOverBorderBrush="White"
+                                       IsEnabled="False"
                                        Click="Tile_Click">
                             <iconPacks:PackIconMaterial Width="40"
                                                         Height="40"
@@ -418,6 +410,7 @@
                                        Title="开始辨识" 
                                        Margin="3" 
                                        controls:ControlsHelper.MouseOverBorderBrush="White" 
+                                       IsEnabled="False"
                                        Click="Identy_Click">
                             <iconPacks:PackIconMaterial Width="30"
                                                         Height="30"
@@ -492,11 +485,14 @@
                      Height="30"/>
             <Label Content="下位机网络信息" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
             <Label x:Name="NetMsg" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-            <Label Content="当前采样率" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
+            <Label Content="下位机工作状态" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
             <Label x:Name="SampleContent"  Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-            <Label Content="下位机工作状态" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5" />
             <Label x:Name="WorkStateContext" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-            <ListBox x:Name="MsgBox" Height="150"/>
+            <Label x:Name="RotateSpeed1" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
+            <Label x:Name="RotateSpeed2" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
+            <Label x:Name="RotateSpeed3" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
+            <Label x:Name="RotateSpeed4" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
+            <!--<ListBox x:Name="MsgBox" Height="160"/>-->
         </StackPanel>
     </Grid>
 </controls:MetroWindow>

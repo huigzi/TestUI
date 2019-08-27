@@ -8,6 +8,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Media;
@@ -36,12 +37,17 @@ namespace TestUI
 
     public enum DataState
     {
-        Started, Stoped
+        Started, Stopped
     }
 
     public enum DeviceState
     {
         Connected, DisConnected
+    }
+
+    public enum WorkStateEnum
+    {
+        DebugState, WorkState
     }
 
 
@@ -50,6 +56,7 @@ namespace TestUI
         private FilePath _filePath;
         private DataState _dataState;
         private DeviceState _deviceState;
+        private WorkStateEnum _workState;
         private byte[] _channelInfo;
         private IntPtr _connectId;
         private int _itemcount = 1;
@@ -67,6 +74,7 @@ namespace TestUI
         private readonly byte[] _startCommand;
         private readonly byte[] _stopCommand;
         private readonly byte[] _paramReadyCommand;
+        private readonly byte[] _alarmCommand;
 
         public ObservableCollection<IntPtr> ClinetList;
 
@@ -94,9 +102,17 @@ namespace TestUI
                 142, 11, 42, 150, 130
             };
 
+
+            _alarmCommand = new byte[]
+            {
+                231, 33, 254, 159, 25, 70, 136, 237, 238, 39, 247, 233, 118, 193, 35, 101, 218,
+                188, 227, 155, 9, 198, 217, 157, 175, 171, 90, 149
+            };
+
             _channelInfo = new byte[16];
-            _dataState = DataState.Stoped;
+            _dataState = DataState.Stopped;
             _deviceState = DeviceState.DisConnected;
+            _workState = WorkStateEnum.WorkState;
 
             _algorithm = new Algorithm();
             _filePath = new FilePath();
@@ -196,6 +212,7 @@ namespace TestUI
                 _server.MaxPackSize = 0x8FFF;
 
                 AddMsg($"HP-Socket Version: {_server.Version}");
+
             }
             catch (Exception ex)
             {
@@ -219,20 +236,20 @@ namespace TestUI
 
         private void AddMsg(string msg)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
+            Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
             {
-                if (MsgBox.Items.Count > 50)
-                {
-                    MsgBox.Items.RemoveAt(0);
-                }
+                //if (MsgBox.Items.Count > 50)
+                //{
+                //    MsgBox.Items.RemoveAt(0);
+                //}
 
-                MsgBox.Items.Add(msg);
+                //MsgBox.Items.Add(msg);
             });
         }
 
         private void AddStatus(string msg, Color color)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
+            Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
             {
                 WorkStateContext.Content = msg;
                 WorkStateContext.Foreground = new SolidColorBrush(color);
@@ -241,36 +258,36 @@ namespace TestUI
 
         private void AddClient(string msg)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
+            Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
             {
                 NetMsg.Content = msg;
             });
         }
 
-        private void AddPlot(byte[] xData)
+        private async void AddPlot(byte[] xData)
         {
             int j = 0;
 
             for (int i = 0; i < 16; i++)
             {
-                if (_channelInfo[i] == 1)
+                if (_channelInfo[i] != 1) continue;
+
+                await Task.Run(() =>
                 {
                     _algorithm.CalculateGraph(xData, i, 512, _samFreq);
-                    _lineGraphs[j * 2].Description = $"信号通道 {i + 1}";
-                    _lineGraphs[j * 2 + 1].Description = $"信号通道 {i + 1}";
-                    _lineGraphs[j * 2].PlotY(_algorithm.TimerGraph);
-                    _lineGraphs[j * 2 + 1].Plot(_algorithm.Xaxis, _algorithm.Finresult);
-                    j++;
-                }
+                });
+
+                _lineGraphs[j * 2].Description = $"信号通道 {i + 1}";
+                _lineGraphs[j * 2 + 1].Description = $"信号通道 {i + 1}";
+                _lineGraphs[j * 2].PlotY(_algorithm.TimerGraph);
+                _lineGraphs[j * 2 + 1].Plot(_algorithm.Xaxis, _algorithm.Finresult);
+                j++;
             }
         }
 
         private void RemoveClient(int index)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
-            {
-                NetMsg.Content = null;
-            });
+            Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate { NetMsg.Content = null; });
         }
 
         private void SaveData(byte[] bytes)
@@ -296,7 +313,6 @@ namespace TestUI
         private HandleResult OnAccept(IntPtr connId, IntPtr pClient)
         {
             // 客户进入了
-
             // 获取客户端ip和端口
             string ip = string.Empty;
             ushort port = 0;
@@ -304,6 +320,14 @@ namespace TestUI
             {
                 AddMsg($" > [{connId},OnAccept] -> PASS({ip}:{port})");
                 AddClient($"{ip}:{port}");
+
+                _deviceState = DeviceState.Connected;
+
+                Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
+                {
+                    DebugState.IsEnabled = true;
+                });
+
             }
             else
             {
@@ -361,14 +385,14 @@ namespace TestUI
 
                 if (_dataState == DataState.Started)
                 {
-                    Dispatcher.Invoke(new UpdateBytesDelegate(SaveData), bytes);
+                    Dispatcher?.Invoke(new UpdateBytesDelegate(SaveData), bytes);
                 }
 
                 if (bytes.Length > 32)
                 {
-                    Dispatcher.Invoke(new UpdatePlot(AddPlot), bytes);
+                    Dispatcher?.Invoke(new UpdatePlot(AddPlot), bytes);
                 }
-                else if (bytes.Length <= 32 && bytes.Length > 10)
+                else if (bytes.Length <= 32 && bytes.Length > 20)
                 {
                     if (bytes.SequenceEqual(_startCommand))
                     {
@@ -379,66 +403,75 @@ namespace TestUI
                     {
                         _sw.Dispose();
                         _filestream.Dispose();
-                        SetDataState(DataState.Stoped);
-                        Dispatcher.Invoke(() =>
+                        SetDataState(DataState.Stopped);
+                        Dispatcher?.Invoke(() =>
                         {
                             SampChange.IsEnabled = true;
-                        
+                            Identy.IsEnabled = true;
                         });
                     }
 
-                    if (bytes.SequenceEqual(_paramReadyCommand))
+                    if (bytes.SequenceEqual(_alarmCommand))
                     {
-                        Dispatcher.Invoke(() =>
-                        {
-                            
-
-                        });
+                        Dispatcher?.Invoke(() => { AddStatus("失控报警", Color.FromRgb(255, 0, 0)); });
                     }
+
                 }
                 else
                 {
                     if (bytes[0] == 0x00)
                     {
-                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
+                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
                         {
                             _samFreq = 1000;
-                            SampleContent.Content = "1000Hz";
+                            SampleContent.Content = "1000Hz采样率";
+                            AddStatus("工作模式", Color.FromRgb(0, 255, 0));
                         });
                     }
                     else if (bytes[0] == 0x01)
                     {
-                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
+                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
                         {
                             _samFreq = 2000;
-                            SampleContent.Content = "2000Hz";
+                            SampleContent.Content = "2000Hz采样率";
+                            AddStatus("工作模式", Color.FromRgb(0, 255, 0));
                         });
                     }
                     else if (bytes[0] == 0x02)
                     {
-                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
+                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
                         {
                             _samFreq = 4000;
-                            SampleContent.Content = "4000Hz";
+                            SampleContent.Content = "4000Hz采样率";
+                            AddStatus("工作模式", Color.FromRgb(0, 255, 0));
                         });
+                    }
+                    else if (bytes[0] == 0xff)
+                    {
+                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
+                            {
+                                RotateSpeed1.Content = "转速1：" + BitConverter.ToUInt16(bytes, 2).ToString() + "转/秒";
+                                RotateSpeed2.Content = "转速2：" + BitConverter.ToUInt16(bytes, 4).ToString() + "转/秒";
+                                RotateSpeed3.Content = "转速3：" + BitConverter.ToUInt16(bytes, 6).ToString() + "转/秒";
+                                RotateSpeed4.Content = "转速4：" + BitConverter.ToUInt16(bytes, 8).ToString() + "转/秒";
+                            });
                     }
                     else
                     {
-                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
+                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
                         {
                             _samFreq = 8000;
-                            SampleContent.Content = "8000Hz";
+                            SampleContent.Content = "8000Hz采样率";
+                            AddStatus("工作模式", Color.FromRgb(0, 255, 0));
                         });
                     }
 
-                    AddStatus("工作模式", Color.FromRgb(0, 255, 0));
                 }
 
                 return HandleResult.Ok;
             }
             catch (Exception)
             {
-
                 return HandleResult.Error;
             }
         }
@@ -459,6 +492,8 @@ namespace TestUI
             }
 
             AddStatus("下位机已断开", Color.FromRgb(255, 0, 0));
+
+            _deviceState = DeviceState.DisConnected;
 
             return HandleResult.Ok;
         }
@@ -509,6 +544,13 @@ namespace TestUI
             {
                 Connect.IsEnabled = true;
                 UnCon.IsEnabled = false;
+                Save1772Data.IsEnabled = false;
+                SendParam.IsEnabled = false;
+                DebugState.IsEnabled = false;
+                WorkState.IsEnabled = false;
+                Programing.IsEnabled = false;
+                SampChange.IsEnabled = false;
+                Identy.IsEnabled = false;
             }
             else
             {
@@ -528,6 +570,16 @@ namespace TestUI
 
             AddStatus("调试模式", Color.FromRgb(0, 255, 0));
 
+            _workState = WorkStateEnum.DebugState;
+
+            Save1772Data.IsEnabled = true;
+            SendParam.IsEnabled = true;
+            DebugState.IsEnabled = false;
+            WorkState.IsEnabled = true;
+            Programing.IsEnabled = true;
+            SampChange.IsEnabled = true;
+            Identy.IsEnabled = true;
+
         }
 
         private void WorkState_Click(object sender, RoutedEventArgs e)
@@ -541,6 +593,40 @@ namespace TestUI
             _server.Send(_connectId, commandBuf, 4);
 
             AddStatus("工作模式", Color.FromRgb(0, 255, 0));
+
+            _workState = WorkStateEnum.WorkState;
+
+            Save1772Data.IsEnabled = false;
+            SendParam.IsEnabled = false;
+            DebugState.IsEnabled = true;
+            WorkState.IsEnabled = false;
+            Programing.IsEnabled = false;
+            SampChange.IsEnabled = false;
+            Identy.IsEnabled = false;
+        }
+
+        private void DisAlarm_Click(object sender, RoutedEventArgs e)
+        {
+
+            var commandBuf = new byte[16];
+
+            commandBuf[0] = 0x01;
+            commandBuf[1] = 0x01;
+            commandBuf[2] = 0x04;
+            commandBuf[3] = 0x00;
+            _server.Send(_connectId, commandBuf, 4);
+
+            AddStatus("工作模式", Color.FromRgb(0, 255, 0));
+
+            _workState = WorkStateEnum.WorkState;
+
+            Save1772Data.IsEnabled = false;
+            SendParam.IsEnabled = false;
+            DebugState.IsEnabled = true;
+            WorkState.IsEnabled = false;
+            Programing.IsEnabled = false;
+            SampChange.IsEnabled = false;
+            Identy.IsEnabled = false;
         }
 
         private void Identy_Click(object sender, RoutedEventArgs e)
@@ -576,6 +662,7 @@ namespace TestUI
             }
 
             SampChange.IsEnabled = false;
+            Identy.IsEnabled = false;
 
             _count2++;
 
@@ -587,53 +674,76 @@ namespace TestUI
             _filestream = new FileStream(path: path, mode: FileMode.Create, access: FileAccess.Write);
             _sw = new BinaryWriter(_filestream);
 
-            if (SingalType.SelectedIndex == 0)
+            switch (SingalType.SelectedIndex)
             {
-                var commandBuf = new byte[16];
+                case 0:
+                {
+                    var commandBuf = new byte[16];
 
-                commandBuf[0] = 0x01;
-                commandBuf[1] = 0x01;
-                commandBuf[2] = 0x02;
-                commandBuf[3] = 0x00;
-                commandBuf[4] = (byte) duration;
-                commandBuf[5] = (byte) ChanNum.SelectedItem;
-                commandBuf[5] -= 1;
-                commandBuf[6] = (byte) (amplitude * 10);
+                    commandBuf[0] = 0x01;
+                    commandBuf[1] = 0x01;
+                    commandBuf[2] = 0x02;
+                    commandBuf[3] = 0x00;
+                    commandBuf[4] = (byte) duration;
+                    commandBuf[5] = (byte) ChanNum.SelectedItem;
+                    commandBuf[5] -= 1;
+                    commandBuf[6] = (byte) (amplitude * 10);
 
-                _server.Send(_connectId, commandBuf, 7);
-            }
-            else if (SingalType.SelectedIndex == 1)
-            {
-                var commandBuf = new byte[16];
+                    _server.Send(_connectId, commandBuf, 7);
+                    break;
+                }
 
-                commandBuf[0] = 0x01;
-                commandBuf[1] = 0x01;
-                commandBuf[2] = 0x02;
-                commandBuf[3] = 0x01;
-                commandBuf[4] = (byte) duration;
-                commandBuf[5] = (byte) ChanNum.SelectedItem;
-                commandBuf[5] -= 1;
-                commandBuf[6] = (byte) (amplitude * 10);
-                commandBuf[7] = (byte) (sinfreq / 100);
+                case 1:
+                {
 
-                _server.Send(_connectId, commandBuf, 8);
-            }
-            else
-            {
-                var commandBuf = new byte[16];
+                    if (sinfreq > _samFreq / 2)
+                    {
+                        sinfreq = _samFreq / 2;
 
-                commandBuf[0] = 0x01;
-                commandBuf[1] = 0x01;
-                commandBuf[2] = 0x02;
-                commandBuf[3] = 0x02;
-                commandBuf[4] = (byte) duration;
-                commandBuf[5] = (byte) ChanNum.SelectedItem;
-                commandBuf[5] -= 1;
-                commandBuf[6] = (byte) (amplitude * 10);
-                commandBuf[7] = (byte) (minnum / 100);
-                commandBuf[8] = (byte) (maxnum / 100);
+                        SinFreqNum.Value = _samFreq / 2;
+                    }
 
-                _server.Send(_connectId, commandBuf, 9);
+                    var commandBuf = new byte[16];
+
+                    commandBuf[0] = 0x01;
+                    commandBuf[1] = 0x01;
+                    commandBuf[2] = 0x02;
+                    commandBuf[3] = 0x01;
+                    commandBuf[4] = (byte) duration;
+                    commandBuf[5] = (byte) ChanNum.SelectedItem;
+                    commandBuf[5] -= 1;
+                    commandBuf[6] = (byte) (amplitude * 10);
+                    commandBuf[7] = (byte) (sinfreq / 100);
+
+                    _server.Send(_connectId, commandBuf, 8);
+                    break;
+                }
+
+                default:
+                {
+                    if (maxnum > _samFreq / 2)
+                    {
+                        maxnum = _samFreq / 2;
+
+                        MaxNum.Value = _samFreq / 2;
+                    }
+
+                    var commandBuf = new byte[16];
+
+                    commandBuf[0] = 0x01;
+                    commandBuf[1] = 0x01;
+                    commandBuf[2] = 0x02;
+                    commandBuf[3] = 0x02;
+                    commandBuf[4] = (byte) duration;
+                    commandBuf[5] = (byte) ChanNum.SelectedItem;
+                    commandBuf[5] -= 1;
+                    commandBuf[6] = (byte) (amplitude * 10);
+                    commandBuf[7] = (byte) (minnum / 100);
+                    commandBuf[8] = (byte) (maxnum / 100);
+
+                    _server.Send(_connectId, commandBuf, 9);
+                    break;
+                }
             }
 
         }
@@ -649,7 +759,7 @@ namespace TestUI
 
             _server.Send(_connectId, commandBuf, 4);
             _samFreq = int.Parse(SampFreq.SelectedItem.ToString().Trim());
-            SampleContent.Content = SampFreq.SelectedItem + "Hz";
+            SampleContent.Content = SampFreq.SelectedItem + "Hz采样率";
         }
 
         private void Programing_Click(object sender, RoutedEventArgs e)
@@ -662,26 +772,26 @@ namespace TestUI
 
         }
 
-        private void ChannelControl_Click(object sender, RoutedEventArgs e)
-        {
-            var commandBuf = new byte[16];
-            if (ChannelControl.IsChecked == true)
-            {
-                commandBuf[0] = 0x01;
-                commandBuf[1] = 0x01;
-                commandBuf[2] = 0x06;
-                commandBuf[3] = 0x01;
-                _server.Send(_connectId, commandBuf, 4);
-            }
-            else
-            {
-                commandBuf[0] = 0x01;
-                commandBuf[1] = 0x01;
-                commandBuf[2] = 0x06;
-                commandBuf[3] = 0x00;
-                _server.Send(_connectId, commandBuf, 4);
-            }
-        }
+        //private void ChannelControl_Click(object sender, RoutedEventArgs e)
+        //{
+        //    var commandBuf = new byte[16];
+        //    if (ChannelControl.IsChecked == true)
+        //    {
+        //        commandBuf[0] = 0x01;
+        //        commandBuf[1] = 0x01;
+        //        commandBuf[2] = 0x06;
+        //        commandBuf[3] = 0x01;
+        //        _server.Send(_connectId, commandBuf, 4);
+        //    }
+        //    else
+        //    {
+        //        commandBuf[0] = 0x01;
+        //        commandBuf[1] = 0x01;
+        //        commandBuf[2] = 0x06;
+        //        commandBuf[3] = 0x00;
+        //        _server.Send(_connectId, commandBuf, 4);
+        //    }
+        //}
 
         private void Save1772Data_Click(object sender, RoutedEventArgs e)
         {
@@ -701,7 +811,7 @@ namespace TestUI
 
             if (_dataState == DataState.Started)
             {
-                SetDataState(DataState.Stoped);
+                SetDataState(DataState.Stopped);
                 tile.Title = "开始保存";
                 _sw.Dispose();
                 _filestream.Dispose();
@@ -1569,5 +1679,6 @@ namespace TestUI
             public string IpAddress { get; set; }
             public ushort Port { get; set; }
         }
+
     }
 }
