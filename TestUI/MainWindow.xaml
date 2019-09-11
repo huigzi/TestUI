@@ -10,7 +10,7 @@
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:TestUI"
         mc:Ignorable="d"
-        Title="主动隔振Demo" Height="700" Width="950"
+        Title="主动隔振Demo" Height="500" Width="800"
         Loaded="MetroWindow_Loaded"
         Closed="MetroWindow_Closed">
 
@@ -131,11 +131,11 @@
     <Grid>
 
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="4*"/>
-            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="155*"/>
+            <ColumnDefinition Width="43*"/>
         </Grid.ColumnDefinitions>
 
-        <controls:MetroAnimatedTabControl Grid.RowSpan="2">
+        <controls:MetroAnimatedTabControl Grid.RowSpan="1">
             <TabItem Header="功能">
                 <WrapPanel HorizontalAlignment="Left" VerticalAlignment="Top">
                     <controls:Tile x:Name="Connect" 
@@ -209,7 +209,7 @@
                                    Title="变为调试状态" 
                                    Margin="3" 
                                    controls:ControlsHelper.MouseOverBorderBrush="White" 
-                                   Style="{StaticResource LargeTileStyle}" 
+                                   Style="{StaticResource SmallTileStyle}" 
                                    Click="DebugState_Click"
                                    IsEnabled="False">
                         <iconPacks:PackIconMaterial Width="40"
@@ -220,7 +220,7 @@
                                    Title="变为工作状态" 
                                    Margin="3" 
                                    controls:ControlsHelper.MouseOverBorderBrush="White" 
-                                   Style="{StaticResource LargeTileStyle}" 
+                                   Style="{StaticResource SmallTileStyle}" 
                                    Click="WorkState_Click"
                                    IsEnabled="False">
                         <iconPacks:PackIconMaterial Width="40"
@@ -248,7 +248,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*"/>
                         <ColumnDefinition Width="*"/>
-               
+
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Margin="10, 5, 10, 5" Grid.Column="0">
@@ -308,7 +308,7 @@
                             <Label Content="扫频起始频率（Hz）" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
                             <controls:NumericUpDown x:Name="MinNum" 
                                                     Maximum="4000" 
-                                                    Minimum="1" 
+                                                    Minimum="100" 
                                                     TextAlignment="Left"  
                                                     Margin="0,5,0,5" 
                                                     Grid.Column="1"
@@ -324,7 +324,7 @@
                             <Label Content="扫频截至频率（Hz）" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
                             <controls:NumericUpDown x:Name="MaxNum" 
                                                     Maximum="4000" 
-                                                    Minimum="1" 
+                                                    Minimum="100" 
                                                     TextAlignment="Left"  
                                                     Margin="0,5,0,5" 
                                                     Grid.Column="1"
@@ -386,13 +386,13 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <!--<Label Content="隔振控制" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>-->
-                            <!--<controls:ToggleSwitch x:Name="ChannelControl" 
+                            <Label Content="隔振控制" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
+                            <controls:ToggleSwitch x:Name="ChannelControl" 
                                                    Margin="0,5,0,0"
                                                    Grid.Column="1"
                                                    IsChecked="False" 
                                                    Click="ChannelControl_Click"
-                                                   />-->
+                                                   />
                         </Grid>
                     </StackPanel>
                     <StackPanel Grid.Column="1">
@@ -471,14 +471,14 @@
         <StackPanel Margin="10,5,10,5" Grid.Column="1">
             <Label Content="本地服务器IP" Style="{DynamicResource DescriptionHeaderStyle}" />
             <TextBox x:Name="IpAddress" 
-                     Margin="50,10,50,10"
+                     Margin="10,10,10,10"
                      HorizontalContentAlignment="Center"
                      VerticalContentAlignment="Center" 
                      FontWeight="Bold"
                      Height="30"/>
             <Label Content="数据端口" Style="{DynamicResource DescriptionHeaderStyle}" />
             <TextBox x:Name="ProtNum" 
-                     Margin="50,10,50,10" 
+                     Margin="10,10,10,10" 
                      HorizontalContentAlignment="Center"
                      VerticalContentAlignment="Center" 
                      FontWeight="Bold"

@@ -383,13 +383,15 @@ namespace TestUI
                     return HandleResult.Error;
                 }
 
-                if (_dataState == DataState.Started)
-                {
-                    Dispatcher?.Invoke(new UpdateBytesDelegate(SaveData), bytes);
-                }
 
                 if (bytes.Length > 32)
                 {
+
+                    if (_dataState == DataState.Started)
+                    {
+                        Dispatcher?.Invoke(new UpdateBytesDelegate(SaveData), bytes);
+                    }
+
                     Dispatcher?.Invoke(new UpdatePlot(AddPlot), bytes);
                 }
                 else if (bytes.Length <= 32 && bytes.Length > 20)
@@ -414,6 +416,14 @@ namespace TestUI
                     if (bytes.SequenceEqual(_alarmCommand))
                     {
                         Dispatcher?.Invoke(() => { AddStatus("失控报警", Color.FromRgb(255, 0, 0)); });
+                    }
+
+                    if (bytes.SequenceEqual(_paramReadyCommand))
+                    {
+                        Dispatcher?.Invoke(() => {
+                            SendParam.IsEnabled = true;
+                            Programing.IsEnabled = true;
+                        });
                     }
 
                 }
@@ -448,17 +458,17 @@ namespace TestUI
                     }
                     else if (bytes[0] == 0xff)
                     {
-                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
-                            {
-                                RotateSpeed1.Content = "转速1：" + BitConverter.ToUInt16(bytes, 2).ToString() + "转/秒";
-                                RotateSpeed2.Content = "转速2：" + BitConverter.ToUInt16(bytes, 4).ToString() + "转/秒";
-                                RotateSpeed3.Content = "转速3：" + BitConverter.ToUInt16(bytes, 6).ToString() + "转/秒";
-                                RotateSpeed4.Content = "转速4：" + BitConverter.ToUInt16(bytes, 8).ToString() + "转/秒";
-                            });
+                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
+                        {
+                            RotateSpeed1.Content = "转速1：" + BitConverter.ToUInt16(bytes, 2).ToString() + "转/秒";
+                            RotateSpeed2.Content = "转速2：" + BitConverter.ToUInt16(bytes, 4).ToString() + "转/秒";
+                            RotateSpeed3.Content = "转速3：" + BitConverter.ToUInt16(bytes, 6).ToString() + "转/秒";
+                            RotateSpeed4.Content = "转速4：" + BitConverter.ToUInt16(bytes, 8).ToString() + "转/秒";
+                        });
                     }
                     else
                     {
-                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
+                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
                         {
                             _samFreq = 8000;
                             SampleContent.Content = "8000Hz采样率";
@@ -772,26 +782,26 @@ namespace TestUI
 
         }
 
-        //private void ChannelControl_Click(object sender, RoutedEventArgs e)
-        //{
-        //    var commandBuf = new byte[16];
-        //    if (ChannelControl.IsChecked == true)
-        //    {
-        //        commandBuf[0] = 0x01;
-        //        commandBuf[1] = 0x01;
-        //        commandBuf[2] = 0x06;
-        //        commandBuf[3] = 0x01;
-        //        _server.Send(_connectId, commandBuf, 4);
-        //    }
-        //    else
-        //    {
-        //        commandBuf[0] = 0x01;
-        //        commandBuf[1] = 0x01;
-        //        commandBuf[2] = 0x06;
-        //        commandBuf[3] = 0x00;
-        //        _server.Send(_connectId, commandBuf, 4);
-        //    }
-        //}
+        private void ChannelControl_Click(object sender, RoutedEventArgs e)
+        {
+            var commandBuf = new byte[16];
+            if (ChannelControl.IsChecked == true)
+            {
+                commandBuf[0] = 0x01;
+                commandBuf[1] = 0x01;
+                commandBuf[2] = 0x06;
+                commandBuf[3] = 0x01;
+                _server.Send(_connectId, commandBuf, 4);
+            }
+            else
+            {
+                commandBuf[0] = 0x01;
+                commandBuf[1] = 0x01;
+                commandBuf[2] = 0x06;
+                commandBuf[3] = 0x00;
+                _server.Send(_connectId, commandBuf, 4);
+            }
+        }
 
         private void Save1772Data_Click(object sender, RoutedEventArgs e)
         {
@@ -855,6 +865,9 @@ namespace TestUI
             {
                 return;
             }
+
+            SendParam.IsEnabled = false;
+            Programing.IsEnabled = false;
 
             var commandBuf = new byte[16];
 
