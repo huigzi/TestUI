@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MathNet.Numerics.IntegralTransforms;
+using MathNet.Numerics.LinearAlgebra;
 
 namespace TestUI
 {
@@ -11,24 +12,36 @@ namespace TestUI
     {
         private readonly FourierOptions _fourierOptions = 0;
         private float[] _xTemp2 = new float[514];
+        private Vector<double> _w;
+        private Vector<double> _xBuf;
         private float _fs;
-        private byte[] _temp = new byte[2];
+        //private byte[] _temp = new byte[2];
 
         public float[] Xaxis { get; } = new float[256];
 
-        public double[] Finresult { get; } = new double[256];
+        public double[] Finalresult { get; } = new double[256];
 
         public float[] TimerGraph { get; } = new float[512];
 
-        private void TimerDomain(IReadOnlyList<byte> xData, int channel)
+
+        public Algorithm()
+        {
+            _w = Vector<double>.Build.Dense(512, 0);
+            _xBuf = Vector<double>.Build.Dense(512, 0);
+        }
+
+        public void SetZero()
+        {
+            _w = Vector<double>.Build.Dense(512, 0);
+            _xBuf = Vector<double>.Build.Dense(512, 0);
+        }
+
+        private void TimerDomain(byte[] xData, int channel)
         {
             int i = 0;
             for (int j = channel * 1024; j < 1024 + channel * 1024; j = j + 2)
             {
-                _temp[0] = xData[j];
-                _temp[1] = xData[j + 1];
-
-                TimerGraph[i] = BitConverter.ToInt16(_temp, 0);
+                TimerGraph[i] = BitConverter.ToInt16(xData, j);
                 i++;
             }
         }
@@ -37,7 +50,6 @@ namespace TestUI
         {
             int k = 0;
             float average = xTemp.Average();
-            double temp = 0;
 
             for (int i = 0; i < dotsNum; i++)
             {
@@ -48,12 +60,13 @@ namespace TestUI
 
             for (int j = 0; j < dotsNum; j = j + 2)
             {
-                Finresult[k] = Math.Sqrt(_xTemp2[j] * _xTemp2[j] + _xTemp2[j + 1] * _xTemp2[j + 1]);
-                //temp = Math.Sqrt(_xTemp2[j] * _xTemp2[j] + _xTemp2[j + 1] * _xTemp2[j + 1]);
-                //Finresult[k] = 10 * Math.Log(Math.Sqrt(_xTemp2[j] * _xTemp2[j] + _xTemp2[j + 1] * _xTemp2[j + 1]));
+                Finalresult[k] = 10 * Math.Log(Math.Sqrt(_xTemp2[j] * _xTemp2[j] + _xTemp2[j + 1] * _xTemp2[j + 1]));
                 Xaxis[k] = _fs / dotsNum * k;
                 k++;
             }
+
+            Finalresult[0] = 0;
+
         }
 
         public void CalculateGraph(byte[] xData, int channel, int dotsNum, int sampFreq)
@@ -61,6 +74,38 @@ namespace TestUI
             _fs = sampFreq;
             TimerDomain(xData, channel);
             FreqDomain(TimerGraph, dotsNum);
+        }
+
+        //public void Nlms(byte[] xData, int FilterLength, int miu)
+        public Vector<double> Nlms(Vector<double> outBuffer, Vector<double> chanBuffer, int FilterLength, double miu)
+        {
+
+            for (int i = 0; i < 512; i++)
+            {
+
+                for (int m = 511; m > 0; m--)
+
+                {
+                    _xBuf[m] = _xBuf[m - 1];
+                }
+
+                _xBuf[0] = outBuffer[i];
+
+                double sum1 = 0;
+
+                for (int m = 0; m < 512; m++)
+                {
+                    sum1 += _xBuf[m] * _w[m];
+                }
+
+                var error = chanBuffer[i] - sum1;
+
+                _w += error * miu * _xBuf.Divide(_xBuf.PointwisePower(2).Sum());
+
+            }
+
+            return _w;
+
         }
     }
 }

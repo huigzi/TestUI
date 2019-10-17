@@ -206,7 +206,7 @@
                                                     Kind="AlarmOff" />
                     </controls:Tile>
                     <controls:Tile x:Name="DebugState" 
-                                   Title="变为调试状态" 
+                                   Title="变为设备配置模式" 
                                    Margin="3" 
                                    controls:ControlsHelper.MouseOverBorderBrush="White" 
                                    Style="{StaticResource SmallTileStyle}" 
@@ -217,7 +217,7 @@
                                                     Kind="AndroidDebugBridge" />
                     </controls:Tile>
                     <controls:Tile x:Name="WorkState" 
-                                   Title="变为工作状态" 
+                                   Title="变为振动控制模式" 
                                    Margin="3" 
                                    controls:ControlsHelper.MouseOverBorderBrush="White" 
                                    Style="{StaticResource SmallTileStyle}" 
@@ -244,6 +244,68 @@
             </TabItem>
 
             <TabItem Header="控制" Margin="50,0,-50,0" IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="*"/>
+
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Margin="10, 5, 10, 5" Grid.Column="0">
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="系统采样率（Hz）" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
+                            <ComboBox x:Name="SampFreq" 
+                                      Grid.Column="1"
+                                      Margin="0,5,0,5"
+                                      controls:TextBoxHelper.ClearTextButton="True"
+                                      ItemsSource="{Binding Source={StaticResource Freq}}"
+                                      FontWeight="Bold"></ComboBox>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="振动控制测试" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
+                            <controls:ToggleSwitch x:Name="ChannelControl" 
+                                                   Margin="0,5,0,0"
+                                                   Grid.Column="1"
+                                                   IsChecked="False" 
+                                                   Click="ChannelControl_Click"/>
+                        </Grid>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <controls:Tile x:Name="SampChange"  
+                                       Title="采样率变更" 
+                                       Margin="3" 
+                                       controls:ControlsHelper.MouseOverBorderBrush="White"
+                                       IsEnabled="False"
+                                       Click="Tile_Click">
+                            <iconPacks:PackIconMaterial Width="40"
+                                                        Height="40"
+                                                        Kind="Cached" />
+                        </controls:Tile>
+                        <!--<controls:Tile x:Name="Identy"  
+                                       Title="开始辨识" 
+                                       Margin="3" 
+                                       controls:ControlsHelper.MouseOverBorderBrush="White" 
+                                       IsEnabled="False"
+                                       Click="Identy_Click">
+                            <iconPacks:PackIconMaterial Width="30"
+                                                        Height="30"
+                                                        Kind="Play" />
+                        </controls:Tile>-->
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="辨识" Margin="100,0,-100,0" IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*"/>
@@ -344,13 +406,17 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <Label Content="系统采样率（Hz）" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-                            <ComboBox x:Name="SampFreq" 
-                                      Grid.Column="1"
-                                      Margin="0,5,0,5"
-                                      controls:TextBoxHelper.ClearTextButton="True"
-                                      ItemsSource="{Binding Source={StaticResource Freq}}"
-                                      FontWeight="Bold"></ComboBox>
+                            <Label Content="辨识信号步长" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
+                            <controls:NumericUpDown
+                                x:Name="IdentityMiu" 
+                                Minimum="0.0000001" 
+                                Interval="0.0000001"
+                                Value="0.1"
+                                TextAlignment="Left"  
+                                Margin="0,5,0,5" 
+                                Grid.Column="1"
+                                input:InputMethod.IsInputMethodEnabled="False"
+                                FontWeight="Bold"/>
                         </Grid>
 
                         <Grid>
@@ -381,31 +447,8 @@
                                       FontWeight="Bold"></ComboBox>
                         </Grid>
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Label Content="隔振控制" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-                            <controls:ToggleSwitch x:Name="ChannelControl" 
-                                                   Margin="0,5,0,0"
-                                                   Grid.Column="1"
-                                                   IsChecked="False" 
-                                                   Click="ChannelControl_Click"
-                                                   />
-                        </Grid>
                     </StackPanel>
                     <StackPanel Grid.Column="1">
-                        <controls:Tile x:Name="SampChange"  
-                                       Title="采样率变更" 
-                                       Margin="3" 
-                                       controls:ControlsHelper.MouseOverBorderBrush="White"
-                                       IsEnabled="False"
-                                       Click="Tile_Click">
-                            <iconPacks:PackIconMaterial Width="40"
-                                                        Height="40"
-                                                        Kind="Cached" />
-                        </controls:Tile>
                         <controls:Tile x:Name="Identy"  
                                        Title="开始辨识" 
                                        Margin="3" 
@@ -416,54 +459,18 @@
                                                         Height="30"
                                                         Kind="Play" />
                         </controls:Tile>
-                    </StackPanel>
-                </Grid>
-            </TabItem>
 
-            <TabItem Header="图像" Margin="100,0,-100,0" IsEnabled="{Binding Path=IsEnabled, ElementName=UnCon}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <d3:Chart Name="Plotter1">
-                        <d3:Chart.Title>
-                            <TextBlock HorizontalAlignment="Center" FontSize="15" Margin="0,5,0,5">时域图</TextBlock>
-                        </d3:Chart.Title>
-                        <d3:Chart.LegendContent>
-                            <d3:LegendItemsPanel>
-                                <d3:LegendItemsPanel.Resources>
-                                    <DataTemplate x:Key="InteractiveDataDisplay.WPF.LineGraph">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Line Width="15" Height="15" X1="0" Y1="0" X2="15" Y2="15"
-                                                  Stroke="{Binding Path=Stroke}" StrokeThickness="2" />
-                                            <TextBlock Margin="5,0,0,0" Text="{Binding Path=Description}"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </d3:LegendItemsPanel.Resources>
-                            </d3:LegendItemsPanel>
-                        </d3:Chart.LegendContent>
-                        <Grid Name="Tlines"/>
-                    </d3:Chart>
-                    <d3:Chart Name="Plotter2" Grid.Row="1">
-                        <d3:Chart.Title>
-                            <TextBlock HorizontalAlignment="Center" FontSize="15" Margin="0,5,0,5">频域图</TextBlock>
-                        </d3:Chart.Title>
-                        <d3:Chart.LegendContent>
-                            <d3:LegendItemsPanel>
-                                <d3:LegendItemsPanel.Resources>
-                                    <DataTemplate x:Key="InteractiveDataDisplay.WPF.LineGraph">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Line Width="15" Height="15" X1="0" Y1="0" X2="15" Y2="15"
-                                                  Stroke="{Binding Path=Stroke}" StrokeThickness="2" />
-                                            <TextBlock Margin="5,0,0,0" Text="{Binding Path=Description}"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </d3:LegendItemsPanel.Resources>
-                            </d3:LegendItemsPanel>
-                        </d3:Chart.LegendContent>
-                        <Grid Name="Flines"/>
-                    </d3:Chart>
+                        <controls:Tile x:Name="CleanIdentityResult"  
+                                       Title="清空辨识缓存" 
+                                       Margin="3" 
+                                       controls:ControlsHelper.MouseOverBorderBrush="White"
+                                       IsEnabled="False"
+                                       Click="CleanIdentityResult_Click">
+                            <iconPacks:PackIconMaterial Width="40"
+                                                        Height="40"
+                                                        Kind="BorderNone" />
+                        </controls:Tile>
+                    </StackPanel>
                 </Grid>
             </TabItem>
         </controls:MetroAnimatedTabControl>

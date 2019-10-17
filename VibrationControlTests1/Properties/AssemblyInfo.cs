@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // 有关程序集的一般信息由以下
 // 控制。更改这些特性值可修改
 // 与程序集关联的信息。
-[assembly: AssemblyTitle("VibrationControlTests")]
+[assembly: AssemblyTitle("VibrationControlTests1")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("VibrationControlTests")]
+[assembly: AssemblyProduct("VibrationControlTests1")]
 [assembly: AssemblyCopyright("Copyright ©  2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // 如果此项目向 COM 公开，则下列 GUID 用于类型库的 ID
-[assembly: Guid("0f372c6a-bc57-4327-8299-e1fc3341307b")]
+[assembly: Guid("b1d25a27-7ae9-4ec1-999a-c977a76ea33b")]
 
 // 程序集的版本信息由下列四个值组成: 
 //

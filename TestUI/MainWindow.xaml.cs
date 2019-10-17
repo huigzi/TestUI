@@ -1,6 +1,7 @@
 ﻿using HPSocketCS;
 using InteractiveDataDisplay.WPF;
 using MathNet.Numerics.Data.Matlab;
+using MathNet.Numerics.LinearAlgebra;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -40,6 +41,7 @@ namespace TestUI
         Started, Stopped
     }
 
+
     public enum DeviceState
     {
         Connected, DisConnected
@@ -55,9 +57,10 @@ namespace TestUI
     {
         private FilePath _filePath;
         private DataState _dataState;
+        private DataState _identyState;
         private DeviceState _deviceState;
         private WorkStateEnum _workState;
-        private byte[] _channelInfo;
+        //private byte[] _channelInfo;
         private IntPtr _connectId;
         private int _itemcount = 1;
         private BinaryWriter _sw;
@@ -66,31 +69,32 @@ namespace TestUI
         private long _count;
         private long _count2;
         private string _filename;
+        private ImageWindow _childrenWindow;
+        private List<Vector<double>> _actuatorIdentityResult;
+        private Dictionary<int, List<Vector<double>>> _identityResult;
 
         private readonly Algorithm _algorithm;
         private readonly List<LineGraph> _lineGraphs;
         private readonly TcpPackServer _server;
 
-        private readonly byte[] _startCommand;
-        private readonly byte[] _stopCommand;
+        private readonly byte[] _identyStartCommand;
+        private readonly byte[] _identyStopCommand;
         private readonly byte[] _paramReadyCommand;
         private readonly byte[] _alarmCommand;
 
         public ObservableCollection<IntPtr> ClinetList;
 
         private delegate void ShowMsg();
-        private delegate void UpdateBytesDelegate(byte[] data);
-        private delegate void UpdatePlot(byte[] xData);
 
         public MainWindow()
         {
-            _startCommand = new byte[]
+            _identyStartCommand = new byte[]
             {
                 159, 25, 70, 136, 237, 238, 39, 247, 233, 118, 193, 35, 101, 218, 188, 227, 155, 9, 198, 217, 157, 175,
                 171, 90, 149, 245, 251, 8
             };
 
-            _stopCommand = new byte[]
+            _identyStopCommand = new byte[]
             {
                 175, 80, 237, 9, 109, 94, 188, 195, 46, 119, 108, 156, 170, 180, 66, 161, 154, 39, 28, 116, 222, 79,
                 135, 52, 171, 58, 114, 157
@@ -109,14 +113,17 @@ namespace TestUI
                 188, 227, 155, 9, 198, 217, 157, 175, 171, 90, 149
             };
 
-            _channelInfo = new byte[16];
+            //_channelInfo = new byte[16];
             _dataState = DataState.Stopped;
+            _identyState = DataState.Stopped;
             _deviceState = DeviceState.DisConnected;
             _workState = WorkStateEnum.WorkState;
 
             _algorithm = new Algorithm();
             _filePath = new FilePath();
             _server = new TcpPackServer();
+            _actuatorIdentityResult = new List<Vector<double>>();
+            _identityResult = new Dictionary<int, List<Vector<double>>>(16);
             ClinetList = new ObservableCollection<IntPtr>();
 
             InitializeComponent();
@@ -126,49 +133,49 @@ namespace TestUI
                 new LineGraph()
                 {
                     Stroke = new SolidColorBrush(Color.FromArgb(255, 0, 0, 0)),
-                    Description = $"信号通道 {1}",
+                    Description = "信号通道 {1}",
                     StrokeThickness = 2
                 },
                 new LineGraph()
                 {
                     Stroke = new SolidColorBrush(Color.FromArgb(255, 0, 0, 0)),
-                    Description = $"信号通道 {1}",
+                    Description = "信号通道 {1}",
                     StrokeThickness = 2
                 },
                 new LineGraph()
                 {
                     Stroke = new SolidColorBrush(Color.FromArgb(255, 255, 0, 0)),
-                    Description = $"信号通道 {2}",
+                    Description = "信号通道 {2}",
                     StrokeThickness = 2
                 },
                 new LineGraph()
                 {
                     Stroke = new SolidColorBrush(Color.FromArgb(255, 255, 0, 0)),
-                    Description = $"信号通道 {2}",
+                    Description = "信号通道 {2}",
                     StrokeThickness = 2
                 },
                 new LineGraph()
                 {
                     Stroke = new SolidColorBrush(Color.FromArgb(255, 0, 255, 0)),
-                    Description = $"信号通道 {3}",
+                    Description = "信号通道 {3}",
                     StrokeThickness = 2
                 },
                 new LineGraph()
                 {
                     Stroke = new SolidColorBrush(Color.FromArgb(255, 0, 255, 0)),
-                    Description = $"信号通道 {3}",
+                    Description = "信号通道 {3}",
                     StrokeThickness = 2
                 },
                 new LineGraph()
                 {
                     Stroke = new SolidColorBrush(Color.FromArgb(255, 0, 0, 255)),
-                    Description = $"信号通道 {4}",
+                    Description = "信号通道 {4}",
                     StrokeThickness = 2
                 },
                 new LineGraph()
                 {
                     Stroke = new SolidColorBrush(Color.FromArgb(255, 0, 0, 255)),
-                    Description = $"信号通道 {4}",
+                    Description = "信号通道 {4}",
                     StrokeThickness = 2
                 },
             };
@@ -198,13 +205,11 @@ namespace TestUI
                 _server.OnClose += OnClose;
                 _server.OnShutdown += OnShutdown;
 
-                _channelInfo[0] = 1;
-
-                for (int i = 0; i < 8; i = i + 2)
-                {
-                    Tlines.Children.Add(_lineGraphs[i]);
-                    Flines.Children.Add(_lineGraphs[i + 1]);
-                }
+                //for (int i = 0; i < 8; i = i + 2)
+                //{
+                //    Tlines.Children.Add(_lineGraphs[i]);
+                //    Flines.Children.Add(_lineGraphs[i + 1]);
+                //}
 
                 // 设置包头标识,与对端设置保证一致性 存储方式为小端存储 例如 需要传递3个字节 若验证标识为 0xff 则网络助手应写包头为 03 00 C0 3F
                 _server.PackHeaderFlag = 0xff;
@@ -213,6 +218,12 @@ namespace TestUI
 
                 AddMsg($"HP-Socket Version: {_server.Version}");
 
+                _childrenWindow = new ImageWindow();
+                _childrenWindow.Show();
+                _childrenWindow.Owner = this;
+
+                //_channelInfo[0] = 1;
+                _childrenWindow.ChannelInfo[0] = 1;
             }
             catch (Exception ex)
             {
@@ -270,7 +281,7 @@ namespace TestUI
 
             for (int i = 0; i < 16; i++)
             {
-                if (_channelInfo[i] != 1) continue;
+                //if (_channelInfo[i] != 1) continue;
 
                 await Task.Run(() =>
                 {
@@ -280,7 +291,7 @@ namespace TestUI
                 _lineGraphs[j * 2].Description = $"信号通道 {i + 1}";
                 _lineGraphs[j * 2 + 1].Description = $"信号通道 {i + 1}";
                 _lineGraphs[j * 2].PlotY(_algorithm.TimerGraph);
-                _lineGraphs[j * 2 + 1].Plot(_algorithm.Xaxis, _algorithm.Finresult);
+                _lineGraphs[j * 2 + 1].Plot(_algorithm.Xaxis, _algorithm.Finalresult);
                 j++;
             }
         }
@@ -303,6 +314,11 @@ namespace TestUI
             _dataState = state;
         }
 
+        private void SetIdentyState(DataState state)
+        {
+            _identyState = state;
+        }
+
         private HandleResult OnPrepareListen(IntPtr soListen)
         {
             // 监听事件到达了,一般没什么用吧?
@@ -316,6 +332,7 @@ namespace TestUI
             // 获取客户端ip和端口
             string ip = string.Empty;
             ushort port = 0;
+
             if (_server.GetRemoteAddress(connId, ref ip, ref port))
             {
                 AddMsg($" > [{connId},OnAccept] -> PASS({ip}:{port})");
@@ -386,26 +403,40 @@ namespace TestUI
 
                 if (bytes.Length > 32)
                 {
-
                     if (_dataState == DataState.Started)
                     {
-                        Dispatcher?.Invoke(new UpdateBytesDelegate(SaveData), bytes);
+                        //Dispatcher?.Invoke(new UpdateBytesDelegate(SaveData), bytes);
+
+                        Dispatcher?.Invoke(() => { SaveData(bytes); });
                     }
 
-                    Dispatcher?.Invoke(new UpdatePlot(AddPlot), bytes);
+                    //FFT计算与绘图
+                    //Dispatcher?.Invoke(new UpdatePlot(AddPlot), bytes);
+
+                    _childrenWindow?.Dispatcher?.Invoke(async () =>
+                    {
+                        _actuatorIdentityResult = await _childrenWindow.AddPlot(bytes, _samFreq, _identyState, IdentityMiu.Value);
+                        _identityResult[(int) (ChanNum.SelectedItem) - 1] = _actuatorIdentityResult;
+                    });
+
                 }
                 else if (bytes.Length <= 32 && bytes.Length > 20)
                 {
-                    if (bytes.SequenceEqual(_startCommand))
+                    if (bytes.SequenceEqual(_identyStartCommand))
                     {
+                        _algorithm.SetZero();
                         SetDataState(DataState.Started);
+                        SetIdentyState(DataState.Started);
                     }
 
-                    if (bytes.SequenceEqual(_stopCommand))
+                    if (bytes.SequenceEqual(_identyStopCommand))
                     {
                         _sw.Dispose();
                         _filestream.Dispose();
+
                         SetDataState(DataState.Stopped);
+                        SetIdentyState(DataState.Stopped);
+
                         Dispatcher?.Invoke(() =>
                         {
                             SampChange.IsEnabled = true;
@@ -517,6 +548,7 @@ namespace TestUI
         }
 
         private void Connect_Click(object sender, RoutedEventArgs e)
+
         {
             if (string.IsNullOrEmpty(IpAddress.Text) || string.IsNullOrEmpty(ProtNum.Text))
             {
@@ -536,6 +568,11 @@ namespace TestUI
                 {
                     AddMsg($"服务已经正常启动 ->({tmpIp}:{port})");
                     AddStatus("下位机未连接", Color.FromRgb(255, 0, 0));
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show("服务启动错误，请检查环境");
+                    return;
                 }
 
                 Connect.IsEnabled = false;
@@ -683,6 +720,7 @@ namespace TestUI
 
             _filestream = new FileStream(path: path, mode: FileMode.Create, access: FileAccess.Write);
             _sw = new BinaryWriter(_filestream);
+
 
             switch (SingalType.SelectedIndex)
             {
@@ -852,20 +890,96 @@ namespace TestUI
             _filePath.Path = mDialog.SelectedPath.Trim();
         }
 
+        //原始读取matlab文件的辨识参数发送函数
+        //private void SendParam_Click(object sender, RoutedEventArgs e)
+        //{
+        //    var openFileDialog = new Microsoft.Win32.OpenFileDialog()
+        //    {
+        //        Filter = ""
+        //    };
+
+        //    var result = openFileDialog.ShowDialog();
+
+        //    if (result == false)
+        //    {
+        //        return;
+        //    }
+
+        //    SendParam.IsEnabled = false;
+        //    Programing.IsEnabled = false;
+
+        //    var commandBuf = new byte[16];
+
+        //    commandBuf[0] = 0x01;
+        //    commandBuf[1] = 0x01;
+        //    commandBuf[2] = 0x01;
+        //    commandBuf[3] = 0x00;
+
+        //    _server.Send(_connectId, commandBuf, 4);
+
+        //    try
+        //    {
+        //        //save 语句功能 version -v7以下
+        //        var m1 = MatlabReader.ReadAll<float>(filePath: openFileDialog.FileName);
+
+        //        if (m1.ContainsKey("param"))
+        //        {
+        //            if (m1["param"].ColumnCount > 16)
+        //            {
+        //                AddMsg($"读取错误 -> 参数个数错误，请检查文件");
+        //                return;
+        //            }
+
+        //            var paramBuf = new byte[512 * 4];
+
+        //            for (int i = 0; i < m1["param"].ColumnCount; i++)
+        //            {
+        //                var temp = BitConverter.GetBytes(m1["param"][0, i]);
+        //                paramBuf[4 * i] = temp[0];
+        //                paramBuf[4 * i + 1] = temp[1];
+        //                paramBuf[4 * i + 2] = temp[2];
+        //                paramBuf[4 * i + 3] = temp[3];
+        //            }
+
+        //            _server.Send(_connectId, paramBuf, 64);
+        //        }
+
+        //        if (m1.ContainsKey("filterCoeff"))
+        //        {
+        //            if (m1["filterCoeff"].ColumnCount > 512 || m1["filterCoeff"].RowCount > 16)
+        //            {
+        //                AddMsg($"读取错误 -> 滤波器系数错误，请检查文件");
+        //                return;
+        //            }
+
+        //            for (int i = 0; i < m1["filterCoeff"].RowCount; i++)
+        //            {
+
+        //                var paramBuf = new byte[512 * 4];
+
+        //                for (int j = 0; j < m1["filterCoeff"].ColumnCount; j++)
+        //                {
+        //                    var temp = BitConverter.GetBytes(m1["filterCoeff"][i, j]);
+        //                    paramBuf[4 * j] = temp[0];
+        //                    paramBuf[4 * j + 1] = temp[1];
+        //                    paramBuf[4 * j + 2] = temp[2];
+        //                    paramBuf[4 * j + 3] = temp[3];
+        //                }
+
+        //                _server.Send(_connectId, paramBuf, 512 * 4);
+        //            }
+        //        }
+        //    }
+        //    catch
+        //    {
+        //        AddMsg($"读取错误 -> 更改参数错误，请联系开发商");
+        //    }
+        //}
+
+
+        //移植算法的读取缓存的辨识参数发送函数
         private void SendParam_Click(object sender, RoutedEventArgs e)
         {
-            var openFileDialog = new Microsoft.Win32.OpenFileDialog()
-            {
-                Filter = ""
-            };
-
-            var result = openFileDialog.ShowDialog();
-
-            if (result == false)
-            {
-                return;
-            }
-
             SendParam.IsEnabled = false;
             Programing.IsEnabled = false;
 
@@ -878,62 +992,39 @@ namespace TestUI
 
             _server.Send(_connectId, commandBuf, 4);
 
-            try
+            var paramBuf = new byte[64 * 4];
+
+            for (int i = 0; i < 16; i++)
             {
-                //save 语句功能 version -v7以下
-                var m1 = MatlabReader.ReadAll<float>(filePath: openFileDialog.FileName);
+                var temp = BitConverter.GetBytes(0.007f);
+                paramBuf[4 * i] = temp[0];
+                paramBuf[4 * i + 1] = temp[1];
+                paramBuf[4 * i + 2] = temp[2];
+                paramBuf[4 * i + 3] = temp[3];
+            }
 
-                if (m1.ContainsKey("param"))
+            _server.Send(_connectId, paramBuf, 64);
+
+            paramBuf = new byte[512 * 4];
+
+            //每个助动器的误差通道
+            for (int i = 0; i < 4; i++)
+            {
+                //助动器
+                for (int j = 0; j < 4; j++)
                 {
-                    if (m1["param"].ColumnCount > 16)
+                    var tempResult = _identityResult[j][i].Select(x=>(float)x).ToArray();
+                    for (int k = 0; k < 512; k++)
                     {
-                        AddMsg($"读取错误 -> 参数个数错误，请检查文件");
-                        return;
-                    }
-
-                    var paramBuf = new byte[512 * 4];
-
-                    for (int i = 0; i < m1["param"].ColumnCount; i++)
-                    {
-                        var temp = BitConverter.GetBytes(m1["param"][0, i]);
+                        var temp = BitConverter.GetBytes(tempResult[k]);
                         paramBuf[4 * i] = temp[0];
                         paramBuf[4 * i + 1] = temp[1];
                         paramBuf[4 * i + 2] = temp[2];
                         paramBuf[4 * i + 3] = temp[3];
                     }
 
-                    _server.Send(_connectId, paramBuf, 64);
+                    _server.Send(_connectId, paramBuf, 512 * 4);
                 }
-
-                if (m1.ContainsKey("filterCoeff"))
-                {
-                    if (m1["filterCoeff"].ColumnCount > 512 || m1["filterCoeff"].RowCount > 16)
-                    {
-                        AddMsg($"读取错误 -> 滤波器系数错误，请检查文件");
-                        return;
-                    }
-
-                    for (int i = 0; i < m1["filterCoeff"].RowCount; i++)
-                    {
-
-                        var paramBuf = new byte[512 * 4];
-
-                        for (int j = 0; j < m1["filterCoeff"].ColumnCount; j++)
-                        {
-                            var temp = BitConverter.GetBytes(m1["filterCoeff"][i, j]);
-                            paramBuf[4 * j] = temp[0];
-                            paramBuf[4 * j + 1] = temp[1];
-                            paramBuf[4 * j + 2] = temp[2];
-                            paramBuf[4 * j + 3] = temp[3];
-                        }
-
-                        _server.Send(_connectId, paramBuf, 512 * 4);
-                    }
-                }
-            }
-            catch
-            {
-                AddMsg($"读取错误 -> 更改参数错误，请联系开发商");
             }
         }
 
@@ -942,17 +1033,23 @@ namespace TestUI
             Flyout.IsOpen = true;
         }
 
+        private void CleanIdentityResult_Click(object sender, RoutedEventArgs e)
+        {
+            _identityResult.Clear();
+        }
+
         private void CheckBox1_Click(object sender, RoutedEventArgs e)
         {
             if (CheckBox1.IsChecked == true)
             {
-                _channelInfo[0] = 1;
+                //_channelInfo[0] = 1;
+                _childrenWindow.ChannelInfo[0] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -969,15 +1066,15 @@ namespace TestUI
 
             else
             {
-                _channelInfo[0] = 0;
-
+                //_channelInfo[0] = 0;
+                _childrenWindow.ChannelInfo[0] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -996,13 +1093,14 @@ namespace TestUI
         {
             if (CheckBox2.IsChecked == true)
             {
-                _channelInfo[1] = 1;
+                //_channelInfo[1] = 1;
+                _childrenWindow.ChannelInfo[1] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1019,13 +1117,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[1] = 0;
+                //_channelInfo[1] = 0;
+                _childrenWindow.ChannelInfo[1] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1043,13 +1142,14 @@ namespace TestUI
         {
             if (CheckBox3.IsChecked == true)
             {
-                _channelInfo[2] = 1;
+                //_channelInfo[2] = 1;
+                _childrenWindow.ChannelInfo[2] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1065,13 +1165,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[2] = 0;
+                //_channelInfo[2] = 0;
+                _childrenWindow.ChannelInfo[2] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1089,13 +1190,14 @@ namespace TestUI
         {
             if (CheckBox4.IsChecked == true)
             {
-                _channelInfo[3] = 1;
+                //_channelInfo[3] = 1;
+                _childrenWindow.ChannelInfo[3] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1111,14 +1213,15 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[3] = 0;
+                //_channelInfo[3] = 0;
+                _childrenWindow.ChannelInfo[3] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1136,13 +1239,14 @@ namespace TestUI
         {
             if (CheckBox5.IsChecked == true)
             {
-                _channelInfo[4] = 1;
+                //_channelInfo[4] = 1;
+                _childrenWindow.ChannelInfo[4] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1159,13 +1263,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[4] = 0;
+                //_channelInfo[4] = 0;
+                _childrenWindow.ChannelInfo[4] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1183,13 +1288,14 @@ namespace TestUI
         {
             if (CheckBox6.IsChecked == true)
             {
-                _channelInfo[5] = 1;
+                //_channelInfo[5] = 1;
+                _childrenWindow.ChannelInfo[5] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1205,13 +1311,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[5] = 0;
+                //_channelInfo[5] = 0;
+                _childrenWindow.ChannelInfo[5] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1229,13 +1336,14 @@ namespace TestUI
         {
             if (CheckBox7.IsChecked == true)
             {
-                _channelInfo[6] = 1;
+                //_channelInfo[6] = 1;
+                _childrenWindow.ChannelInfo[6] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1251,13 +1359,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[6] = 0;
+                //_channelInfo[6] = 0;
+                _childrenWindow.ChannelInfo[6] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1275,13 +1384,14 @@ namespace TestUI
         {
             if (CheckBox8.IsChecked == true)
             {
-                _channelInfo[7] = 1;
+                //_channelInfo[7] = 1;
+                _childrenWindow.ChannelInfo[7] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1297,13 +1407,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[7] = 0;
+                //_channelInfo[7] = 0;
+                _childrenWindow.ChannelInfo[7] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1321,13 +1432,14 @@ namespace TestUI
         {
             if (CheckBox9.IsChecked == true)
             {
-                _channelInfo[8] = 1;
+                //_channelInfo[8] = 1;
+                _childrenWindow.ChannelInfo[8] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1343,13 +1455,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[8] = 0;
+                //_channelInfo[8] = 0;
+                _childrenWindow.ChannelInfo[8] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1367,13 +1480,14 @@ namespace TestUI
         {
             if (CheckBox10.IsChecked == true)
             {
-                _channelInfo[9] = 1;
+                //_channelInfo[9] = 1;
+                _childrenWindow.ChannelInfo[9] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1389,13 +1503,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[9] = 0;
+                //_channelInfo[9] = 0;
+                _childrenWindow.ChannelInfo[9] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1413,13 +1528,14 @@ namespace TestUI
         {
             if (CheckBox11.IsChecked == true)
             {
-                _channelInfo[10] = 1;
+                //_channelInfo[10] = 1;
+                _childrenWindow.ChannelInfo[10] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1435,13 +1551,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[10] = 0;
+                //_channelInfo[10] = 0;
+                _childrenWindow.ChannelInfo[10] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1459,13 +1576,14 @@ namespace TestUI
         {
             if (CheckBox12.IsChecked == true)
             {
-                _channelInfo[11] = 1;
+                //_channelInfo[11] = 1;
+                _childrenWindow.ChannelInfo[11] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1481,13 +1599,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[11] = 0;
+                //_channelInfo[11] = 0;
+                _childrenWindow.ChannelInfo[11] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1505,13 +1624,14 @@ namespace TestUI
         {
             if (CheckBox13.IsChecked == true)
             {
-                _channelInfo[12] = 1;
+                //_channelInfo[12] = 1;
+                _childrenWindow.ChannelInfo[12] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1527,13 +1647,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[12] = 0;
+                //_channelInfo[12] = 0;
+                _childrenWindow.ChannelInfo[12] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1551,13 +1672,14 @@ namespace TestUI
         {
             if (CheckBox14.IsChecked == true)
             {
-                _channelInfo[13] = 1;
+                //_channelInfo[13] = 1;
+                _childrenWindow.ChannelInfo[13] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1573,13 +1695,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[13] = 0;
+                //_channelInfo[13] = 0;
+                _childrenWindow.ChannelInfo[13] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1597,13 +1720,14 @@ namespace TestUI
         {
             if (CheckBox15.IsChecked == true)
             {
-                _channelInfo[14] = 1;
+                //_channelInfo[14] = 1;
+                _childrenWindow.ChannelInfo[14] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1619,13 +1743,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[14] = 0;
+                //_channelInfo[14] = 0;
+                _childrenWindow.ChannelInfo[14] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1643,13 +1768,14 @@ namespace TestUI
         {
             if (CheckBox16.IsChecked == true)
             {
-                _channelInfo[15] = 1;
+                //_channelInfo[15] = 1;
+                _childrenWindow.ChannelInfo[15] = 1;
 
                 _itemcount++;
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Visible;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Visible;
 
-                if (_itemcount > 3)
+                if (_itemcount > 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {
@@ -1665,13 +1791,14 @@ namespace TestUI
             }
             else
             {
-                _channelInfo[15] = 0;
+                //_channelInfo[15] = 0;
+                _childrenWindow.ChannelInfo[15] = 0;
 
                 _lineGraphs[_itemcount * 2 - 1].Visibility = Visibility.Collapsed;
                 _lineGraphs[_itemcount * 2 - 2].Visibility = Visibility.Collapsed;
                 _itemcount--;
 
-                if (_itemcount > 2)
+                if (_itemcount == 0)
                 {
                     for (int i = 0; i < ChannelList.Children.Count; i++)
                     {

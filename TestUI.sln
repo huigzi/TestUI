@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VibrationControl", "TestUI\
 EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup", "Setup\Setup.vdproj", "{2FF91F6E-B717-4F08-8A1C-DDC93B315000}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VibrationControlTests", "VibrationControlTests\VibrationControlTests.csproj", "{0F372C6A-BC57-4327-8299-E1FC3341307B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VibrationControlTests1", "VibrationControlTests1\VibrationControlTests1.csproj", "{B1D25A27-7AE9-4EC1-999A-C977A76EA33B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,14 +29,14 @@ Global
 		{2FF91F6E-B717-4F08-8A1C-DDC93B315000}.Debug|x64.ActiveCfg = Debug
 		{2FF91F6E-B717-4F08-8A1C-DDC93B315000}.Release|Any CPU.ActiveCfg = Release
 		{2FF91F6E-B717-4F08-8A1C-DDC93B315000}.Release|x64.ActiveCfg = Release
-		{0F372C6A-BC57-4327-8299-E1FC3341307B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0F372C6A-BC57-4327-8299-E1FC3341307B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0F372C6A-BC57-4327-8299-E1FC3341307B}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{0F372C6A-BC57-4327-8299-E1FC3341307B}.Debug|x64.Build.0 = Debug|Any CPU
-		{0F372C6A-BC57-4327-8299-E1FC3341307B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0F372C6A-BC57-4327-8299-E1FC3341307B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0F372C6A-BC57-4327-8299-E1FC3341307B}.Release|x64.ActiveCfg = Release|Any CPU
-		{0F372C6A-BC57-4327-8299-E1FC3341307B}.Release|x64.Build.0 = Release|Any CPU
+		{B1D25A27-7AE9-4EC1-999A-C977A76EA33B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1D25A27-7AE9-4EC1-999A-C977A76EA33B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1D25A27-7AE9-4EC1-999A-C977A76EA33B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B1D25A27-7AE9-4EC1-999A-C977A76EA33B}.Debug|x64.Build.0 = Debug|Any CPU
+		{B1D25A27-7AE9-4EC1-999A-C977A76EA33B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1D25A27-7AE9-4EC1-999A-C977A76EA33B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1D25A27-7AE9-4EC1-999A-C977A76EA33B}.Release|x64.ActiveCfg = Release|Any CPU
+		{B1D25A27-7AE9-4EC1-999A-C977A76EA33B}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
