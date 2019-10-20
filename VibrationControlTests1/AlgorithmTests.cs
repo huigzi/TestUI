@@ -23,16 +23,19 @@ namespace TestUI.Tests
 
             Vector<double> result = Vector<double>.Build.Dense(512, 0);
 
-            for (int i = 0; i < testData.RowCount; i = i + 512)
+            //for (int i = 0; i < testData.RowCount; i = i + 512)
+            //{
+            for (int j = 0; j < 1; j++)
             {
-                for (int j = 0; j < 1; j++)
-                {
-                    var chanData = testData.Column(j, i, 512);
-                    var outData = testData.Column(16, i, 512);
+                //var chanData = testData.Column(j, i, 512);
+                //var outData = testData.Column(16, i, 512);
 
-                    result = algorithm.Nlms(outData, chanData, 512, 0.1);
-                }
+                var chanData = testData.Column(j);
+                var outData = testData.Column(16);
+
+                result = algorithm.Nlms(outData, chanData, 512, 0.1);
             }
+            //}
 
             for (int i = 0; i < testResult.RowCount; i++)
             {

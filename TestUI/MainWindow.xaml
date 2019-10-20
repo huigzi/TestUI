@@ -181,18 +181,6 @@
                                                     Height="30"
                                                     Kind="ContentSaveSettings" />
                     </controls:Tile>
-                    <controls:Tile x:Name="SendParam" 
-                                   Title="发送辨识参数" 
-                                   Margin="3" 
-                                   controls:ControlsHelper.MouseOverBorderBrush="White" 
-                                   Style="{StaticResource SmallTileStyle}" 
-                                   TitleFontSize="14"
-                                   IsEnabled="False"
-                                   Click="SendParam_Click">
-                        <iconPacks:PackIconMaterial Width="30"
-                                                    Height="30"
-                                                    Kind="FileSend" />
-                    </controls:Tile>
                     <controls:Tile x:Name="DisAlarm" 
                                    Title="解除报警" 
                                    Margin="3" 
@@ -204,29 +192,7 @@
                         <iconPacks:PackIconMaterial Width="30"
                                                     Height="30"
                                                     Kind="AlarmOff" />
-                    </controls:Tile>
-                    <controls:Tile x:Name="DebugState" 
-                                   Title="变为设备配置模式" 
-                                   Margin="3" 
-                                   controls:ControlsHelper.MouseOverBorderBrush="White" 
-                                   Style="{StaticResource SmallTileStyle}" 
-                                   Click="DebugState_Click"
-                                   IsEnabled="False">
-                        <iconPacks:PackIconMaterial Width="40"
-                                                    Height="40"
-                                                    Kind="AndroidDebugBridge" />
-                    </controls:Tile>
-                    <controls:Tile x:Name="WorkState" 
-                                   Title="变为振动控制模式" 
-                                   Margin="3" 
-                                   controls:ControlsHelper.MouseOverBorderBrush="White" 
-                                   Style="{StaticResource SmallTileStyle}" 
-                                   Click="WorkState_Click"
-                                   IsEnabled="False">
-                        <iconPacks:PackIconMaterial Width="40"
-                                                    Height="40"
-                                                    Kind="Worker" />
-                    </controls:Tile>
+                    </controls:Tile>  
                     <controls:Tile x:Name="Programing"
                                    Title="固化当前辨识参数" 
                                    Margin="3" 
@@ -239,6 +205,29 @@
                                                     Height="30"
                                                     Kind="FolderUpload" />
                     </controls:Tile>
+                    <controls:Tile x:Name="DebugState" 
+                                   Title="变为设备配置模式" 
+                                   Margin="3" 
+                                   controls:ControlsHelper.MouseOverBorderBrush="White" 
+                                   Style="{StaticResource LargeTileStyle}" 
+                                   Click="DebugState_Click"
+                                   IsEnabled="False">
+                        <iconPacks:PackIconMaterial Width="40"
+                                                    Height="40"
+                                                    Kind="AndroidDebugBridge" />
+                    </controls:Tile>
+                    <controls:Tile x:Name="WorkState" 
+                                   Title="变为振动控制模式" 
+                                   Margin="3" 
+                                   controls:ControlsHelper.MouseOverBorderBrush="White" 
+                                   Style="{StaticResource LargeTileStyle}" 
+                                   Click="WorkState_Click"
+                                   IsEnabled="False">
+                        <iconPacks:PackIconMaterial Width="40"
+                                                    Height="40"
+                                                    Kind="Worker" />
+                    </controls:Tile>
+
                 </WrapPanel>
 
             </TabItem>
@@ -291,16 +280,18 @@
                                                         Height="40"
                                                         Kind="Cached" />
                         </controls:Tile>
-                        <!--<controls:Tile x:Name="Identy"  
-                                       Title="开始辨识" 
+                        <controls:Tile x:Name="SendParam" 
+                                       Title="发送辨识参数" 
                                        Margin="3" 
                                        controls:ControlsHelper.MouseOverBorderBrush="White" 
-                                       IsEnabled="False"
-                                       Click="Identy_Click">
+                                       Style="{StaticResource SmallTileStyle}" 
+                                       TitleFontSize="14"
+                                       IsEnabled="True"
+                                       Click="SendParam_Click">
                             <iconPacks:PackIconMaterial Width="30"
                                                         Height="30"
-                                                        Kind="Play" />
-                        </controls:Tile>-->
+                                                        Kind="FileSend" />
+                        </controls:Tile>
                     </StackPanel>
                 </Grid>
             </TabItem>

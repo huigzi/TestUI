@@ -3,12 +3,14 @@ using InteractiveDataDisplay.WPF;
 using MathNet.Numerics.Data.Matlab;
 using MathNet.Numerics.LinearAlgebra;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
@@ -67,7 +69,6 @@ namespace TestUI
         private FileStream _filestream;
         private int _samFreq;
         private long _count;
-        private long _count2;
         private string _filename;
         private ImageWindow _childrenWindow;
         private List<Vector<double>> _actuatorIdentityResult;
@@ -122,7 +123,6 @@ namespace TestUI
             _algorithm = new Algorithm();
             _filePath = new FilePath();
             _server = new TcpPackServer();
-            _actuatorIdentityResult = new List<Vector<double>>();
             _identityResult = new Dictionary<int, List<Vector<double>>>(16);
             ClinetList = new ObservableCollection<IntPtr>();
 
@@ -205,11 +205,6 @@ namespace TestUI
                 _server.OnClose += OnClose;
                 _server.OnShutdown += OnShutdown;
 
-                //for (int i = 0; i < 8; i = i + 2)
-                //{
-                //    Tlines.Children.Add(_lineGraphs[i]);
-                //    Flines.Children.Add(_lineGraphs[i + 1]);
-                //}
 
                 // 设置包头标识,与对端设置保证一致性 存储方式为小端存储 例如 需要传递3个字节 若验证标识为 0xff 则网络助手应写包头为 03 00 C0 3F
                 _server.PackHeaderFlag = 0xff;
@@ -340,10 +335,12 @@ namespace TestUI
 
                 _deviceState = DeviceState.Connected;
 
-                Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
-                {
-                    DebugState.IsEnabled = true;
-                });
+                //Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
+                //{
+                //    DebugState.IsEnabled = true;
+                //});
+
+                Dispatcher?.Invoke(() => { DebugState.IsEnabled = true; });
 
             }
             else
@@ -385,136 +382,139 @@ namespace TestUI
         private HandleResult OnReceive(IntPtr connId, byte[] bytes)
         {
             // 数据到达了
-            try
+            // 获取附加数据
+            var clientInfo = _server.GetExtra<ClientInfo>(connId);
+            if (clientInfo != null)
             {
-                // 获取附加数据
-                var clientInfo = _server.GetExtra<ClientInfo>(connId);
-                if (clientInfo != null)
+                // clientInfo 就是accept里传入的附加数据了
+                AddMsg(
+                    $" > [{clientInfo.ConnId},OnReceive] -> {clientInfo.IpAddress}:{clientInfo.Port} ({bytes.Length} bytes)");
+            }
+            else
+            {
+                AddMsg($" > [{connId},OnReceive] -> ({bytes.Length} bytes)");
+                return HandleResult.Error;
+            }
+
+
+            if (bytes.Length > 32)
+            {
+                if (_dataState == DataState.Started)
                 {
-                    // clientInfo 就是accept里传入的附加数据了
-                    AddMsg($" > [{clientInfo.ConnId},OnReceive] -> {clientInfo.IpAddress}:{clientInfo.Port} ({bytes.Length} bytes)");
+                    //Dispatcher?.Invoke(new UpdateBytesDelegate(SaveData), bytes);
+
+                    Dispatcher?.Invoke(() => { SaveData(bytes); });
                 }
-                else
+
+                //FFT计算与绘图
+                //Dispatcher?.Invoke(new UpdatePlot(AddPlot), bytes);
+
+                _childrenWindow?.Dispatcher?.Invoke(() =>
                 {
-                    AddMsg($" > [{connId},OnReceive] -> ({bytes.Length} bytes)");
-                    return HandleResult.Error;
-                }
-
-
-                if (bytes.Length > 32)
-                {
-                    if (_dataState == DataState.Started)
+                    if (_identyState == DataState.Started)
                     {
-                        //Dispatcher?.Invoke(new UpdateBytesDelegate(SaveData), bytes);
-
-                        Dispatcher?.Invoke(() => { SaveData(bytes); });
-                    }
-
-                    //FFT计算与绘图
-                    //Dispatcher?.Invoke(new UpdatePlot(AddPlot), bytes);
-
-                    _childrenWindow?.Dispatcher?.Invoke(async () =>
-                    {
-                        _actuatorIdentityResult = await _childrenWindow.AddPlot(bytes, _samFreq, _identyState, IdentityMiu.Value);
-                        _identityResult[(int) (ChanNum.SelectedItem) - 1] = _actuatorIdentityResult;
-                    });
-
-                }
-                else if (bytes.Length <= 32 && bytes.Length > 20)
-                {
-                    if (bytes.SequenceEqual(_identyStartCommand))
-                    {
-                        _algorithm.SetZero();
-                        SetDataState(DataState.Started);
-                        SetIdentyState(DataState.Started);
-                    }
-
-                    if (bytes.SequenceEqual(_identyStopCommand))
-                    {
-                        _sw.Dispose();
-                        _filestream.Dispose();
-
-                        SetDataState(DataState.Stopped);
-                        SetIdentyState(DataState.Stopped);
-
-                        Dispatcher?.Invoke(() =>
-                        {
-                            SampChange.IsEnabled = true;
-                            Identy.IsEnabled = true;
-                        });
-                    }
-
-                    if (bytes.SequenceEqual(_alarmCommand))
-                    {
-                        Dispatcher?.Invoke(() => { AddStatus("失控报警", Color.FromRgb(255, 0, 0)); });
-                    }
-
-                    if (bytes.SequenceEqual(_paramReadyCommand))
-                    {
-                        Dispatcher?.Invoke(() => {
-                            SendParam.IsEnabled = true;
-                            Programing.IsEnabled = true;
-                        });
-                    }
-
-                }
-                else
-                {
-                    if (bytes[0] == 0x00)
-                    {
-                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
-                        {
-                            _samFreq = 1000;
-                            SampleContent.Content = "1000Hz采样率";
-                            AddStatus("工作模式", Color.FromRgb(0, 255, 0));
-                        });
-                    }
-                    else if (bytes[0] == 0x01)
-                    {
-                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
-                        {
-                            _samFreq = 2000;
-                            SampleContent.Content = "2000Hz采样率";
-                            AddStatus("工作模式", Color.FromRgb(0, 255, 0));
-                        });
-                    }
-                    else if (bytes[0] == 0x02)
-                    {
-                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
-                        {
-                            _samFreq = 4000;
-                            SampleContent.Content = "4000Hz采样率";
-                            AddStatus("工作模式", Color.FromRgb(0, 255, 0));
-                        });
-                    }
-                    else if (bytes[0] == 0xff)
-                    {
-                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
-                        {
-                            RotateSpeed1.Content = "转速1：" + BitConverter.ToUInt16(bytes, 2).ToString() + "转/秒";
-                            RotateSpeed2.Content = "转速2：" + BitConverter.ToUInt16(bytes, 4).ToString() + "转/秒";
-                            RotateSpeed3.Content = "转速3：" + BitConverter.ToUInt16(bytes, 6).ToString() + "转/秒";
-                            RotateSpeed4.Content = "转速4：" + BitConverter.ToUInt16(bytes, 8).ToString() + "转/秒";
-                        });
+                         _childrenWindow.AddPlot(bytes, _samFreq, IdentityMiu.Value);
+                        //_identityResult[(int) (ChanNum.SelectedItem) - 1] = _actuatorIdentityResult;
                     }
                     else
                     {
-                        Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
-                        {
-                            _samFreq = 8000;
-                            SampleContent.Content = "8000Hz采样率";
-                            AddStatus("工作模式", Color.FromRgb(0, 255, 0));
-                        });
+                        _childrenWindow.AddPlot(bytes, _samFreq);
                     }
+                });
 
+            }
+            else if (bytes.Length <= 32 && bytes.Length > 20)
+            {
+                if (bytes.SequenceEqual(_identyStartCommand))
+                {
+                    _algorithm.SetZero();
+                    SetDataState(DataState.Started);
+                    SetIdentyState(DataState.Started);
                 }
 
-                return HandleResult.Ok;
+                if (bytes.SequenceEqual(_identyStopCommand))
+                {
+                    _sw.Dispose();
+                    _filestream.Dispose();
+
+                    SetDataState(DataState.Stopped);
+                    SetIdentyState(DataState.Stopped);
+
+                    Dispatcher?.Invoke(() =>
+                    {
+                        SampChange.IsEnabled = true;
+                        Identy.IsEnabled = true;
+                    });
+                }
+
+                if (bytes.SequenceEqual(_alarmCommand))
+                {
+                    Dispatcher?.Invoke(() => { AddStatus("失控报警", Color.FromRgb(255, 0, 0)); });
+                }
+
+                if (bytes.SequenceEqual(_paramReadyCommand))
+                {
+                    Dispatcher?.Invoke(() =>
+                    {
+                        SendParam.IsEnabled = true;
+                        Programing.IsEnabled = true;
+                    });
+                }
+
             }
-            catch (Exception)
+            else
             {
-                return HandleResult.Error;
+                if (bytes[0] == 0x00)
+                {
+                    Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
+                    {
+                        _samFreq = 1000;
+                        SampleContent.Content = "1000Hz采样率";
+                        AddStatus("工作模式", Color.FromRgb(0, 255, 0));
+                    });
+                }
+                else if (bytes[0] == 0x01)
+                {
+                    Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
+                    {
+                        _samFreq = 2000;
+                        SampleContent.Content = "2000Hz采样率";
+                        AddStatus("工作模式", Color.FromRgb(0, 255, 0));
+                    });
+                }
+                else if (bytes[0] == 0x02)
+                {
+                    Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
+                    {
+                        _samFreq = 4000;
+                        SampleContent.Content = "4000Hz采样率";
+                        AddStatus("工作模式", Color.FromRgb(0, 255, 0));
+                    });
+                }
+                else if (bytes[0] == 0xff)
+                {
+                    Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
+                    {
+                        RotateSpeed1.Content = "转速1：" + BitConverter.ToUInt16(bytes, 2).ToString() + "转/秒";
+                        RotateSpeed2.Content = "转速2：" + BitConverter.ToUInt16(bytes, 4).ToString() + "转/秒";
+                        RotateSpeed3.Content = "转速3：" + BitConverter.ToUInt16(bytes, 6).ToString() + "转/秒";
+                        RotateSpeed4.Content = "转速4：" + BitConverter.ToUInt16(bytes, 8).ToString() + "转/秒";
+                    });
+                }
+                else
+                {
+                    Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
+                    {
+                        _samFreq = 8000;
+                        SampleContent.Content = "8000Hz采样率";
+                        AddStatus("工作模式", Color.FromRgb(0, 255, 0));
+                    });
+                }
+
             }
+
+            return HandleResult.Ok;
+
         }
 
         private HandleResult OnClose(IntPtr connId, SocketOperation enOperation, int errorCode)
@@ -711,11 +711,7 @@ namespace TestUI
             SampChange.IsEnabled = false;
             Identy.IsEnabled = false;
 
-            _count2++;
-
-            _filename = DateTime.Now.ToString("MM-dd") + "第" + Convert.ToString(_count2) + "次辨识数据（" +
-                        ChanNum.SelectedItem.ToString().Trim() +
-                        "）通道";
+            _filename = "第" + ChanNum.SelectedItem.ToString().Trim() + "通道辨识数据";
             string path = _filePath.Path + "\\" + _filename;
 
             _filestream = new FileStream(path: path, mode: FileMode.Create, access: FileAccess.Write);
@@ -793,7 +789,6 @@ namespace TestUI
                     break;
                 }
             }
-
         }
 
         private void Tile_Click(object sender, RoutedEventArgs e)
@@ -980,6 +975,20 @@ namespace TestUI
         //移植算法的读取缓存的辨识参数发送函数
         private void SendParam_Click(object sender, RoutedEventArgs e)
         {
+
+            if (string.IsNullOrEmpty(_filePath.Path))
+            {
+                var mDialog = new FolderBrowserDialog();
+                DialogResult result = mDialog.ShowDialog();
+
+                if (result == System.Windows.Forms.DialogResult.Cancel)
+                {
+                    return;
+                }
+
+                _filePath.Path = mDialog.SelectedPath.Trim();
+            }
+
             SendParam.IsEnabled = false;
             Programing.IsEnabled = false;
 
@@ -1007,16 +1016,109 @@ namespace TestUI
 
             paramBuf = new byte[512 * 4];
 
-            //每个助动器的误差通道
+            string[] filenames = Directory.GetFiles(_filePath.Path, "第?通道辨识数据", SearchOption.AllDirectories);
+
+            foreach (string filename in filenames)
+            {
+                //todo 需要注意目前的正则非常简单，要考虑路径有数字的情况，因此应该先提取出filename再进行正则匹配
+
+                Regex r = new Regex("[0-9]");
+
+                int actuatorNum = (int) (Convert.ToDecimal(r.Match(filename).Value));
+
+                List<IEnumerable<double>> signalData = new List<IEnumerable<double>>();
+
+                for (int i = 0; i < 17; i++)
+                {
+                    signalData.Add(new double[0]);
+                }
+
+                using (FileStream fileStream = new FileStream(filename, FileMode.Open))
+                {
+                    using (BinaryReader binaryReader = new BinaryReader(fileStream))
+                    {
+                        try
+                        {
+                            while (true)
+                            {
+                                var data = binaryReader.ReadBytes(512 * 2 * 17);
+                                if (data.Length == 0)
+                                {
+                                    throw new EndOfStreamException("文件读取结束");
+                                }
+                                //辨识计算
+                                var outBuffer = new double[512];
+
+                                int i = 0;
+
+                                for (int j = 16 * 1024; j < 1024 + 16 * 1024; j = j + 2)
+                                {
+                                    outBuffer[i] = BitConverter.ToInt16(data, j);
+                                    i++;
+                                }
+
+                                signalData[16] = signalData[16].Concat(outBuffer);
+
+                                for (int j = 0; j < 16; j++)
+                                {
+                                    var chanBuffer = new double[512];
+                                    i = 0;
+
+                                    for (int k = j * 1024; k < 1024 + j * 1024; k = k + 2)
+                                    {
+                                        chanBuffer[i] = BitConverter.ToInt16(data, k);
+                                        i++;
+                                    }
+
+                                    signalData[j] = signalData[j].Concat(chanBuffer);
+
+                                }
+                            }
+
+                        }
+                        catch (EndOfStreamException exception)
+                        {
+                            _algorithm.SetZero();
+                            _actuatorIdentityResult = new List<Vector<double>>(16);
+
+                            for(int i = 0; i < 16; i++)
+                            {
+                                _actuatorIdentityResult.Add(Vector<double>.Build.Dense(512));
+                            }
+
+                            //for (int i = 0; i < 16; i++)
+                            //{
+                            //    Vector<double> chanData = Vector<double>.Build.DenseOfEnumerable(signalData[i]);
+                            //    _actuatorIdentityResult[i] = _algorithm.Nlms(outData, chanData, 512, (double)IdentityMiu.Value);
+                            //}
+
+                            Vector<double> outData = Vector<double>.Build.DenseOfEnumerable(signalData[16]);
+
+                            var miu = (double)IdentityMiu.Value;
+
+                            Parallel.For(0, 16, i =>
+                            {
+                                Vector<double> chanData = Vector<double>.Build.DenseOfEnumerable(signalData[i]);
+                                _actuatorIdentityResult[i] = _algorithm.Nlms(outData, chanData, 512, miu);
+                            });
+
+                            _identityResult.Add(actuatorNum, _actuatorIdentityResult); 
+                        }
+                    }
+                }
+            }
+
+            //误差通道前4个
             for (int i = 0; i < 4; i++)
             {
-                //助动器
+                //助动器前4个
                 for (int j = 0; j < 4; j++)
                 {
-                    var tempResult = _identityResult[j][i].Select(x=>(float)x).ToArray();
-                    for (int k = 0; k < 512; k++)
+                    var result = _identityResult[j + 1][i].Select(x => (float)x).ToArray();
+
+                    foreach (var t in result)
                     {
-                        var temp = BitConverter.GetBytes(tempResult[k]);
+                        var temp = BitConverter.GetBytes(t);
                         paramBuf[4 * i] = temp[0];
                         paramBuf[4 * i + 1] = temp[1];
                         paramBuf[4 * i + 2] = temp[2];

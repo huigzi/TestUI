@@ -55,61 +55,121 @@ namespace TestUI
             Wlines.Children.Add(_lineGraphs[2]);
         }
 
-        public async Task<List<Vector<double>>> AddPlot(byte[] xData, int samFreq, DataState identityState, double? miu)
+        public void AddPlot(byte[] xData, int samFreq)
         {
-            List<Vector<double>> identityResult = new List<Vector<double>>(16);
 
-            await Task.Run(() =>
+            for (int j = 0; j < 16; j++)
             {
-                //辨识计算
-                if (identityState == DataState.Started)
-                {
-                    var outBuffer = new double[512];
+                if (ChannelInfo[j] != 1) continue;
 
-                    int i = 0;
+                _algorithm.CalculateGraph(xData, j, 512, samFreq);
 
-                    for (int j = 16 * 1024; j < 1024 + 16 * 1024; j = j + 2)
-                    {
-                        outBuffer[i] = BitConverter.ToInt16(xData, j);
-                        i++;
-                    }
-
-                    i = 0;
-
-                    for (int j = 0; j < 16; j++)
-                    {
-                        var chanBuffer = new double[512];
-                        for (int k = j * 1024; k < 1024 + j * 1024; k = k + 2)
-                        {
-                            chanBuffer[i] = BitConverter.ToInt16(xData, k);
-                            i++;
-                        }
-
-                        Vector<double> outData = Vector<double>.Build.DenseOfArray(outBuffer);
-                        Vector<double> chanData = Vector<double>.Build.DenseOfArray(chanBuffer);
-
-                        identityResult[j] = _algorithm.Nlms(outData, chanData, 512, (double)miu);
-                    }
-                }
-
-                for (int j = 0; j < 16; j++)
-                {
-                    if (ChannelInfo[j] != 1) continue;
-
-                    _algorithm.CalculateGraph(xData, j, 512, samFreq);
-
-                    _lineGraphs[0].Description = $"信号通道 {j}";
-                    _lineGraphs[1].Description = $"信号通道 {j}";
-                    _lineGraphs[2].Description = $"信号通道 {j}";
-                    _lineGraphs[0].PlotY(_algorithm.TimerGraph);
-                    _lineGraphs[1].Plot(_algorithm.Xaxis, _algorithm.Finalresult);
-                    _lineGraphs[2].PlotY(identityResult[j]);
-                }
-
-            });
-
-            return identityResult;
+                _lineGraphs[0].Description = $"信号通道 {j}";
+                _lineGraphs[1].Description = $"信号通道 {j}";
+                _lineGraphs[0].PlotY(_algorithm.TimerGraph);
+                _lineGraphs[1].Plot(_algorithm.Xaxis, _algorithm.Finalresult);
+            }
 
         }
+
+        public void AddPlot(byte[] xData, int samFreq, double? miu)
+        {
+
+            for (int j = 0; j < 16; j++)
+            {
+                if (ChannelInfo[j] != 1) continue;
+
+                //辨识计算
+                var outBuffer = new double[512];
+
+                int i = 0;
+
+                for (int k = 16 * 1024; k < 1024 + 16 * 1024; k = k + 2)
+                {
+                    outBuffer[i] = BitConverter.ToInt16(xData, k);
+                    i++;
+                }
+
+                var chanBuffer = new double[512];
+
+                i = 0;
+
+                for (int k = j * 1024; k < 1024 + j * 1024; k = k + 2)
+                {
+                    chanBuffer[i] = BitConverter.ToInt16(xData, k);
+                    i++;
+                }
+
+                Vector<double> outData = Vector<double>.Build.DenseOfArray(outBuffer);
+                Vector<double> chanData = Vector<double>.Build.DenseOfArray(chanBuffer);
+
+                _algorithm.CalculateGraph(xData, j, 512, samFreq);
+                var result = _algorithm.Nlms(outData, chanData, 512, (double) miu);
+
+                _lineGraphs[0].Description = $"信号通道 {j}";
+                _lineGraphs[1].Description = $"信号通道 {j}";
+                _lineGraphs[2].Description = $"信号通道 {j}";
+                _lineGraphs[0].PlotY(_algorithm.TimerGraph);
+                _lineGraphs[1].Plot(_algorithm.Xaxis, _algorithm.Finalresult);
+                _lineGraphs[2].PlotY(result);
+            }
+
+        }
+
+        //public async Task<List<Vector<double>>> AddPlot(byte[] xData, int samFreq, double? miu)
+        //{
+        //    List<Vector<double>> identityResult = new List<Vector<double>>(16);
+
+        //    await Task.Run(() =>
+        //    {
+        //        //辨识计算
+        //        var outBuffer = new double[512];
+
+        //        int i = 0;
+
+        //        for (int j = 16 * 1024; j < 1024 + 16 * 1024; j = j + 2)
+        //        {
+        //            outBuffer[i] = BitConverter.ToInt16(xData, j);
+        //            i++;
+        //        }
+
+        //        for (int j = 0; j < 16; j++)
+        //        {
+        //            var chanBuffer = new double[512];
+        //            i = 0;
+
+        //            for (int k = j * 1024; k < 1024 + j * 1024; k = k + 2)
+        //            {
+        //                chanBuffer[i] = BitConverter.ToInt16(xData, k);
+        //                i++;
+        //            }
+
+        //            Vector<double> outData = Vector<double>.Build.DenseOfArray(outBuffer);
+        //            Vector<double> chanData = Vector<double>.Build.DenseOfArray(chanBuffer);
+
+        //            identityResult[j] = _algorithm.Nlms(outData, chanData, 512, (double)miu);
+
+        //           // var result = _algorithm.Nlms(outData, chanData, 512, (double) miu);
+        //        }
+
+        //    });
+
+        //    for (int j = 0; j < 16; j++)
+        //    {
+        //        if (ChannelInfo[j] != 1) continue;
+
+        //        _algorithm.CalculateGraph(xData, j, 512, samFreq);
+
+        //        _lineGraphs[0].Description = $"信号通道 {j}";
+        //        _lineGraphs[1].Description = $"信号通道 {j}";
+        //        _lineGraphs[2].Description = $"信号通道 {j}";
+        //        _lineGraphs[0].PlotY(_algorithm.TimerGraph);
+        //        _lineGraphs[1].Plot(_algorithm.Xaxis, _algorithm.Finalresult);
+        //        _lineGraphs[2].PlotY(identityResult[j]);
+        //    }
+
+        //    return identityResult;
+
+        //}
     }
 }

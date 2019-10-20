@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MathNet.Numerics;
 using MathNet.Numerics.IntegralTransforms;
 using MathNet.Numerics.LinearAlgebra;
 
@@ -15,7 +16,6 @@ namespace TestUI
         private Vector<double> _w;
         private Vector<double> _xBuf;
         private float _fs;
-        //private byte[] _temp = new byte[2];
 
         public float[] Xaxis { get; } = new float[256];
 
@@ -76,36 +76,37 @@ namespace TestUI
             FreqDomain(TimerGraph, dotsNum);
         }
 
-        //public void Nlms(byte[] xData, int FilterLength, int miu)
         public Vector<double> Nlms(Vector<double> outBuffer, Vector<double> chanBuffer, int FilterLength, double miu)
         {
-
-            for (int i = 0; i < 512; i++)
-            {
-
-                for (int m = 511; m > 0; m--)
-
-                {
-                    _xBuf[m] = _xBuf[m - 1];
-                }
-
+            for (int i = 0; i < outBuffer.Count; i++)
+            { 
+                var temp = _xBuf.SubVector(0,511);
                 _xBuf[0] = outBuffer[i];
+                temp.CopySubVectorTo(_xBuf, 0, 1, 511);
 
-                double sum1 = 0;
-
-                for (int m = 0; m < 512; m++)
-                {
-                    sum1 += _xBuf[m] * _w[m];
-                }
-
-                var error = chanBuffer[i] - sum1;
-
-                _w += error * miu * _xBuf.Divide(_xBuf.PointwisePower(2).Sum());
-
+                _w += (chanBuffer[i] - _xBuf * _w) * miu * _xBuf.Divide(_xBuf.PointwisePower(2).Sum());
             }
 
             return _w;
-
         }
+    }
+
+    public class Nlms
+    {
+        private Vector<double> _w;
+        private Vector<double> _xBuf;
+
+        public Nlms()
+        {
+            _w = Vector<double>.Build.Dense(512, 0);
+            _xBuf = Vector<double>.Build.Dense(512, 0);
+        }
+
+        public void SetZero()
+        {
+            _w = Vector<double>.Build.Dense(512, 0);
+            _xBuf = Vector<double>.Build.Dense(512, 0);
+        }
+
     }
 }
