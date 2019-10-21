@@ -244,12 +244,12 @@ namespace TestUI
         {
             Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
             {
-                //if (MsgBox.Items.Count > 50)
-                //{
-                //    MsgBox.Items.RemoveAt(0);
-                //}
+                if (MsgBox.Items.Count > 50)
+                {
+                    MsgBox.Items.RemoveAt(0);
+                }
 
-                //MsgBox.Items.Add(msg);
+                MsgBox.Items.Add(msg);
             });
         }
 
@@ -335,11 +335,6 @@ namespace TestUI
 
                 _deviceState = DeviceState.Connected;
 
-                //Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg)delegate
-                //{
-                //    DebugState.IsEnabled = true;
-                //});
-
                 Dispatcher?.Invoke(() => { DebugState.IsEnabled = true; });
 
             }
@@ -401,14 +396,10 @@ namespace TestUI
             {
                 if (_dataState == DataState.Started)
                 {
-                    //Dispatcher?.Invoke(new UpdateBytesDelegate(SaveData), bytes);
-
                     Dispatcher?.Invoke(() => { SaveData(bytes); });
                 }
 
                 //FFT计算与绘图
-                //Dispatcher?.Invoke(new UpdatePlot(AddPlot), bytes);
-
                 _childrenWindow?.Dispatcher?.Invoke(() =>
                 {
                     if (_identyState == DataState.Started)
@@ -493,13 +484,13 @@ namespace TestUI
                 }
                 else if (bytes[0] == 0xff)
                 {
-                    Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
-                    {
-                        RotateSpeed1.Content = "转速1：" + BitConverter.ToUInt16(bytes, 2).ToString() + "转/秒";
-                        RotateSpeed2.Content = "转速2：" + BitConverter.ToUInt16(bytes, 4).ToString() + "转/秒";
-                        RotateSpeed3.Content = "转速3：" + BitConverter.ToUInt16(bytes, 6).ToString() + "转/秒";
-                        RotateSpeed4.Content = "转速4：" + BitConverter.ToUInt16(bytes, 8).ToString() + "转/秒";
-                    });
+                    //Dispatcher?.BeginInvoke(DispatcherPriority.Normal, (ShowMsg) delegate
+                    //{
+                    //    RotateSpeed1.Content = "转速1：" + BitConverter.ToUInt16(bytes, 2).ToString() + "转/秒";
+                    //    RotateSpeed2.Content = "转速2：" + BitConverter.ToUInt16(bytes, 4).ToString() + "转/秒";
+                    //    RotateSpeed3.Content = "转速3：" + BitConverter.ToUInt16(bytes, 6).ToString() + "转/秒";
+                    //    RotateSpeed4.Content = "转速4：" + BitConverter.ToUInt16(bytes, 8).ToString() + "转/秒";
+                    //});
                 }
                 else
                 {
@@ -620,7 +611,6 @@ namespace TestUI
             _workState = WorkStateEnum.DebugState;
 
             Save1772Data.IsEnabled = true;
-            SendParam.IsEnabled = true;
             DebugState.IsEnabled = false;
             WorkState.IsEnabled = true;
             Programing.IsEnabled = true;
@@ -972,26 +962,14 @@ namespace TestUI
         //}
 
 
-        //移植算法的读取缓存的辨识参数发送函数
+        //移植算法,计算辨识参数
         private void SendParam_Click(object sender, RoutedEventArgs e)
         {
-
-            if (string.IsNullOrEmpty(_filePath.Path))
-            {
-                var mDialog = new FolderBrowserDialog();
-                DialogResult result = mDialog.ShowDialog();
-
-                if (result == System.Windows.Forms.DialogResult.Cancel)
-                {
-                    return;
-                }
-
-                _filePath.Path = mDialog.SelectedPath.Trim();
-            }
 
             SendParam.IsEnabled = false;
             Programing.IsEnabled = false;
 
+            //发送辨识参数
             var commandBuf = new byte[16];
 
             commandBuf[0] = 0x01;
@@ -1016,98 +994,6 @@ namespace TestUI
 
             paramBuf = new byte[512 * 4];
 
-            string[] filenames = Directory.GetFiles(_filePath.Path, "第?通道辨识数据", SearchOption.AllDirectories);
-
-            foreach (string filename in filenames)
-            {
-                //todo 需要注意目前的正则非常简单，要考虑路径有数字的情况，因此应该先提取出filename再进行正则匹配
-
-                Regex r = new Regex("[0-9]");
-
-                int actuatorNum = (int) (Convert.ToDecimal(r.Match(filename).Value));
-
-                List<IEnumerable<double>> signalData = new List<IEnumerable<double>>();
-
-                for (int i = 0; i < 17; i++)
-                {
-                    signalData.Add(new double[0]);
-                }
-
-                using (FileStream fileStream = new FileStream(filename, FileMode.Open))
-                {
-                    using (BinaryReader binaryReader = new BinaryReader(fileStream))
-                    {
-                        try
-                        {
-                            while (true)
-                            {
-                                var data = binaryReader.ReadBytes(512 * 2 * 17);
-                                if (data.Length == 0)
-                                {
-                                    throw new EndOfStreamException("文件读取结束");
-                                }
-                                //辨识计算
-                                var outBuffer = new double[512];
-
-                                int i = 0;
-
-                                for (int j = 16 * 1024; j < 1024 + 16 * 1024; j = j + 2)
-                                {
-                                    outBuffer[i] = BitConverter.ToInt16(data, j);
-                                    i++;
-                                }
-
-                                signalData[16] = signalData[16].Concat(outBuffer);
-
-                                for (int j = 0; j < 16; j++)
-                                {
-                                    var chanBuffer = new double[512];
-                                    i = 0;
-
-                                    for (int k = j * 1024; k < 1024 + j * 1024; k = k + 2)
-                                    {
-                                        chanBuffer[i] = BitConverter.ToInt16(data, k);
-                                        i++;
-                                    }
-
-                                    signalData[j] = signalData[j].Concat(chanBuffer);
-
-                                }
-                            }
-
-                        }
-                        catch (EndOfStreamException exception)
-                        {
-                            _algorithm.SetZero();
-                            _actuatorIdentityResult = new List<Vector<double>>(16);
-
-                            for(int i = 0; i < 16; i++)
-                            {
-                                _actuatorIdentityResult.Add(Vector<double>.Build.Dense(512));
-                            }
-
-                            //for (int i = 0; i < 16; i++)
-                            //{
-                            //    Vector<double> chanData = Vector<double>.Build.DenseOfEnumerable(signalData[i]);
-                            //    _actuatorIdentityResult[i] = _algorithm.Nlms(outData, chanData, 512, (double)IdentityMiu.Value);
-                            //}
-
-                            Vector<double> outData = Vector<double>.Build.DenseOfEnumerable(signalData[16]);
-
-                            var miu = (double)IdentityMiu.Value;
-
-                            Parallel.For(0, 16, i =>
-                            {
-                                Vector<double> chanData = Vector<double>.Build.DenseOfEnumerable(signalData[i]);
-                                _actuatorIdentityResult[i] = _algorithm.Nlms(outData, chanData, 512, miu);
-                            });
-
-                            _identityResult.Add(actuatorNum, _actuatorIdentityResult); 
-                        }
-                    }
-                }
-            }
-
             //误差通道前4个
             for (int i = 0; i < 4; i++)
             {
@@ -1128,6 +1014,127 @@ namespace TestUI
                     _server.Send(_connectId, paramBuf, 512 * 4);
                 }
             }
+        }
+
+        private async void CalParam_Click(object sender, RoutedEventArgs e)
+        {
+            CalParam.IsEnabled = false;
+
+            if (string.IsNullOrEmpty(_filePath.Path))
+            {
+                var mDialog = new FolderBrowserDialog();
+                DialogResult result = mDialog.ShowDialog();
+
+                if (result == System.Windows.Forms.DialogResult.Cancel)
+                {
+                    return;
+                }
+
+                _filePath.Path = mDialog.SelectedPath.Trim();
+            }
+
+            string[] filenames = Directory.GetFiles(_filePath.Path, "第?通道辨识数据", SearchOption.AllDirectories);
+            var miu = (double)IdentityMiu.Value;
+
+            await Task.Run(() =>
+            {
+                foreach (string filename in filenames)
+                {
+                    //todo 需要注意目前的正则非常简单，要考虑路径有数字的情况，因此应该先提取出filename再进行正则匹配
+
+                    Regex r = new Regex("[0-9]");
+
+                    int actuatorNum = (int)(Convert.ToDecimal(r.Match(filename).Value));
+
+                    List<IEnumerable<double>> signalData = new List<IEnumerable<double>>();
+
+                    for (int i = 0; i < 17; i++)
+                    {
+                        signalData.Add(new double[0]);
+                    }
+
+                    using (FileStream fileStream = new FileStream(filename, FileMode.Open))
+                    {
+                        using (BinaryReader binaryReader = new BinaryReader(fileStream))
+                        {
+                            try
+                            {
+                                while (true)
+                                {
+                                    var data = binaryReader.ReadBytes(512 * 2 * 17);
+                                    if (data.Length == 0)
+                                    {
+                                        throw new EndOfStreamException("文件读取结束");
+                                    }
+                                    //辨识计算
+                                    var outBuffer = new double[512];
+
+                                    int i = 0;
+
+                                    for (int j = 16 * 1024; j < 1024 + 16 * 1024; j = j + 2)
+                                    {
+                                        outBuffer[i] = BitConverter.ToInt16(data, j) / 32768d;
+                                        i++;
+                                    }
+
+                                    signalData[16] = signalData[16].Concat(outBuffer);
+
+                                    for (int j = 0; j < 16; j++)
+                                    {
+                                        var chanBuffer = new double[512];
+                                        i = 0;
+
+                                        for (int k = j * 1024; k < 1024 + j * 1024; k = k + 2)
+                                        {
+                                            chanBuffer[i] = BitConverter.ToInt16(data, k) / 32768d;
+                                            i++;
+                                        }
+
+                                        signalData[j] = signalData[j].Concat(chanBuffer);
+
+                                    }
+                                }
+
+                            }
+                            catch (EndOfStreamException exception)
+                            {
+                                _algorithm.SetZero();
+                                _actuatorIdentityResult = new List<Vector<double>>(16);
+
+                                Vector<double> outData = Vector<double>.Build.DenseOfEnumerable(signalData[16]);
+
+                                for (int i = 0; i < 16; i++)
+                                {
+                                    _actuatorIdentityResult.Add(Vector<double>.Build.Dense(512));
+                                }
+
+                                //for (int i = 0; i < 16; i++)
+                                //{
+                                //    _algorithm.SetZero();
+                                //    Vector<double> chanData = Vector<double>.Build.DenseOfEnumerable(signalData[i]);
+                                //    _actuatorIdentityResult[i] = _algorithm.Nlms(outData, chanData, 512, miu);
+                                //}
+
+
+                                Parallel.For(0, 16, i =>
+                                {
+                                    var algorithm = new Algorithm();
+                                    Vector<double> chanData = Vector<double>.Build.DenseOfEnumerable(signalData[i]);
+                                    _actuatorIdentityResult[i] = algorithm.Nlms(outData, chanData, 512, miu);
+                                });
+
+                                _identityResult.Add(actuatorNum, _actuatorIdentityResult);
+                            }
+                        }
+                    }
+                }
+
+                Dispatcher.Invoke(() => {
+                    SendParam.IsEnabled = true;
+                    CalParam.IsEnabled = true;
+                });
+            });
+
         }
 
         private void ViewChange_Click(object sender, RoutedEventArgs e)
@@ -1921,6 +1928,5 @@ namespace TestUI
             public string IpAddress { get; set; }
             public ushort Port { get; set; }
         }
-
     }
 }

@@ -78,6 +78,7 @@ namespace TestUI
 
         public Vector<double> Nlms(Vector<double> outBuffer, Vector<double> chanBuffer, int FilterLength, double miu)
         {
+
             for (int i = 0; i < outBuffer.Count; i++)
             { 
                 var temp = _xBuf.SubVector(0,511);

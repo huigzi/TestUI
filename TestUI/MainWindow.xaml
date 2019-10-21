@@ -286,8 +286,20 @@
                                        controls:ControlsHelper.MouseOverBorderBrush="White" 
                                        Style="{StaticResource SmallTileStyle}" 
                                        TitleFontSize="14"
-                                       IsEnabled="True"
+                                       IsEnabled="False"
                                        Click="SendParam_Click">
+                            <iconPacks:PackIconMaterial Width="30"
+                                                        Height="30"
+                                                        Kind="FileSend" />
+                        </controls:Tile>
+                        <controls:Tile x:Name="CalParam" 
+                                       Title="计算辨识参数" 
+                                       Margin="3" 
+                                       controls:ControlsHelper.MouseOverBorderBrush="White" 
+                                       Style="{StaticResource SmallTileStyle}" 
+                                       TitleFontSize="14"
+                                       IsEnabled="True"
+                                       Click="CalParam_Click">
                             <iconPacks:PackIconMaterial Width="30"
                                                         Height="30"
                                                         Kind="FileSend" />
@@ -486,11 +498,11 @@
             <Label Content="下位机工作状态" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
             <Label x:Name="SampleContent"  Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
             <Label x:Name="WorkStateContext" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-            <Label x:Name="RotateSpeed1" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
+            <!--<Label x:Name="RotateSpeed1" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
             <Label x:Name="RotateSpeed2" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
             <Label x:Name="RotateSpeed3" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-            <Label x:Name="RotateSpeed4" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>
-            <!--<ListBox x:Name="MsgBox" Height="160"/>-->
+            <Label x:Name="RotateSpeed4" Style="{DynamicResource DescriptionHeaderStyle}" Margin="0,5,0,5"/>-->
+            <ListBox x:Name="MsgBox" Height="160"/>
         </StackPanel>
     </Grid>
 </controls:MetroWindow>
